@@ -1,0 +1,25 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Profile - {{ profile_user.username }}</title>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+  <div class="container">
+    <h1>{{ profile_user.username }}</h1>
+    <p>Email: {{ profile_user.email }}</p>
+    <h3>Your listings</h3>
+    <ul>
+      {% for m in listings %}
+      <li><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a> - Rp {{ m.start_price }}</li>
+      {% empty %}
+      <li>No listings yet.</li>
+      {% endfor %}
+    </ul>
+    <p><a class="btn" href="{% url 'create_listing' %}">Create listing</a></p>
+  </div>
+</body>
+</html>
