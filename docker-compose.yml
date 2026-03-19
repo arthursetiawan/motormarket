@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: motormarket
+      POSTGRES_USER: motormarket
+      POSTGRES_PASSWORD: motormarket
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+
+  web:
+    build: .
+    command: gunicorn motormarket.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://motormarket:motormarket@db:5432/motormarket
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  db_data:

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>MotorMarket</title>
+    {% load static %}
+    {% load thumb_tags %}
+    {% load humanize %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="container">
+        <header class="site-header">
+            <h1>MotorMarket</h1>
+            <p class="tagline">Online bidding platform for motorcycles</p>
+            <nav>
+              {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}">My Profile</a>
+                <a href="{% url 'create_listing' %}">Create</a>
+                <a href="{% url 'account_logout' %}">Logout</a>
+              {% else %}
+                <a href="{% url 'account_login' %}">Login</a>
+                <a href="{% url 'account_signup' %}">Sign up</a>
+              {% endif %}
+              <a class="cta" href="/">Home</a>
+            </nav>
+        </header>
+
+        <section class="filters">
+          <form method="get" class="filters-form">
+            <input type="search" name="q" placeholder="Search title or description" value="{{ request.GET.q }}">
+            <input type="text" name="make" placeholder="Make" value="{{ request.GET.make }}">
+            <input type="number" name="year" placeholder="Year" value="{{ request.GET.year }}">
+            <select name="sort">
+              <option value="">Sort</option>
+              <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
+              <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
+            </select>
+            <button class="btn" type="submit">Filter</button>
+          </form>
+        </section>
+
+        <main>
+            <section class="grid">
+            {% for m in motorcycles %}
+                <article class="card">
+                    {% if m.image %}
+                        <img src="{% thumb m.image '600x400' %}" alt="{{ m.title }}" style="width:100%; border-radius:8px; max-height:160px; object-fit:cover;">
+                    {% endif %}
+                    <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>
+                    <p class="meta">{{ m.make }} • {{ m.year }}</p>
+                    <p class="price">Start: {{ m.start_price|intcomma }} </p>
+                    <p class="desc">{{ m.description|truncatewords:25 }}</p>
+                    <a class="btn" href="{% url 'motorcycle_detail' m.pk %}">View & Bid</a>
+                </article>
+            {% empty %}
+                <p>No motorcycles listed yet.</p>
+            {% endfor %}
+            </section>
+
+            <div class="pagination">
+              {% if motorcycles.has_previous %}
+                <a href="?page={{ motorcycles.previous_page_number }}" class="btn">Prev</a>
+              {% endif %}
+              <span>Page {{ motorcycles.number }} of {{ motorcycles.paginator.num_pages }}</span>
+              {% if motorcycles.has_next %}
+                <a href="?page={{ motorcycles.next_page_number }}" class="btn">Next</a>
+              {% endif %}
+            </div>
+        </main>
+
+        <footer class="site-footer">
+            <p>&copy; MotorMarket</p>
+        </footer>
+    </div>
+</body>
+</html>
