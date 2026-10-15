@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Live auctions — MotorMarket</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .demo-banner {
+      background: rgba(6, 20, 40, 0.92);
+      color: rgba(255,255,255,0.75);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(91,156,240,0.2);
+    }
+    .demo-banner a { color: var(--blue-400); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="demo-banner">
+    Live Motormarket demo ·
+    <a href="https://github.com/arthursetiawan/motormarket">Source on GitHub</a> ·
+    <a href="../">Back to portfolio</a>
+  </div>
+  <div class="site-shell">
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="./">
+          <span class="brand-mark">Motor<span>Market</span></span>
+          <span class="brand-tag">Motorcycle auctions</span>
+        </a>
+        <nav class="site-nav" aria-label="Main">
+          <a href="auctions.html">Auctions</a>
+          <a href="./">Home</a>
+          <a class="nav-cta" href="https://github.com/arthursetiawan/motormarket">Repo</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <div class="container">
+        <header class="page-header">
+          <h1>Live auctions</h1>
+          <p class="tagline">Browse motorcycles — year, mileage, city, and starting bid</p>
+        </header>
+
+        <section class="grid" id="grid"></section>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>&copy; MotorMarket — Demo on GitHub Pages</p>
+      </div>
+    </footer>
+  </div>
+  <script>
+    const listings = [
+      { title: "2024 Honda PCX 160", img: "honda-pcx-160.jpg", meta: "2024 · Honda PCX 160 · 8,420 km · Jakarta", price: "Rp 28.500.000" },
+      { title: "2023 Yamaha R15", img: "yamaha-r15.jpg", meta: "2023 · Yamaha R15 · 12,100 km · Bandung", price: "Rp 32.000.000" },
+      { title: "2021 Kawasaki Ninja 250", img: "kawasaki-ninja-250.jpg", meta: "2021 · Kawasaki Ninja 250 · 18,600 km · Surabaya", price: "Rp 35.000.000" },
+      { title: "2022 Yamaha NMAX", img: "yamaha-nmax.jpg", meta: "2022 · Yamaha NMAX · 15,200 km · Jakarta", price: "Rp 26.750.000" },
+      { title: "2020 Honda Vario 160", img: "honda-vario-160.jpg", meta: "2020 · Honda Vario 160 · 22,400 km · Depok", price: "Rp 19.800.000" },
+      { title: "2023 Yamaha MT-15", img: "yamaha-mt-15.jpg", meta: "2023 · Yamaha MT-15 · 9,050 km · Medan", price: "Rp 33.200.000" },
+      { title: "2019 Vespa Primavera 150", img: "vespa-primavera-150.jpg", meta: "2019 · Vespa Primavera 150 · 11,800 km · Bali", price: "Rp 41.000.000" },
+      { title: "2022 Suzuki GSX-R150", img: "suzuki-gsx-r150.jpg", meta: "2022 · Suzuki GSX-R150 · 14,300 km · Semarang", price: "Rp 27.400.000" },
+      { title: "2021 KTM 390 Duke", img: "ktm-390-duke.jpg", meta: "2021 · KTM 390 Duke · 16,900 km · Jakarta", price: "Rp 68.500.000" }
+    ];
+    document.getElementById("grid").innerHTML = listings.map(l => `
+      <article class="card">
+        <div class="card-media"><img src="img/listings/${l.img}" alt="${l.title}"></div>
+        <div class="card-body">
+          <h2 class="card-title">${l.title}</h2>
+          <p class="meta meta-dense">${l.meta}</p>
+          <p class="price"><span class="price-label">Starting bid</span>${l.price}</p>
+          <a class="btn" href="https://github.com/arthursetiawan/motormarket">Open full app</a>
+        </div>
+      </article>
+    `).join("");
+  </script>
+</body>
+</html>
