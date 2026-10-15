@@ -28,10 +28,17 @@
       <option value="rich" {% if request.GET.deal == 'rich' %}selected{% endif %}>Above market</option>
       <option value="overpriced" {% if request.GET.deal == 'overpriced' %}selected{% endif %}>Overpriced</option>
     </select>
+    <select name="trust">
+      <option value="">Any trust</option>
+      <option value="high_trust" {% if request.GET.trust == 'high_trust' %}selected{% endif %}>High trust</option>
+      <option value="review" {% if request.GET.trust == 'review' %}selected{% endif %}>Review</option>
+      <option value="caution" {% if request.GET.trust == 'caution' %}selected{% endif %}>Caution</option>
+    </select>
     <input type="number" name="year" placeholder="Year" value="{{ request.GET.year }}">
     <select name="sort">
       <option value="">Newest</option>
       <option value="deal" {% if request.GET.sort == 'deal' %}selected{% endif %}>Best deal</option>
+      <option value="trust" {% if request.GET.sort == 'trust' %}selected{% endif %}>Highest trust</option>
       <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Ask ↑</option>
       <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Ask ↓</option>
     </select>
@@ -46,6 +53,9 @@
     <img src="{{ photo }}" alt="{{ m.title }}">
     {% if m.prediction %}
     <span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>
+    {% if m.prediction.trust_label %}
+    <span class="badge trust-{{ m.prediction.trust_label }}">{{ m.prediction.trust_label|trust_name }}</span>
+    {% endif %}
     {% endif %}
     <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>
     <p class="meta">{{ m.make }} {{ m.model_name }} · {{ m.city }} · {{ m.mileage_km|default:0 }} km</p>

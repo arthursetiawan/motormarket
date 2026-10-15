@@ -178,6 +178,44 @@ def recommend_pack(
     }
 
 
+def pack_snapshot(pack: dict | None) -> dict:
+    """Compact JSON-safe quote captured onto FleetInquiry at submit time."""
+    if not pack:
+        return {}
+    program = pack.get("program") or {}
+    units = pack.get("units") or []
+    demand = pack.get("demand") or []
+    return {
+        "program_slug": program.get("slug"),
+        "program_name": program.get("name"),
+        "size": pack.get("size"),
+        "preferred_city": pack.get("preferred_city") or "",
+        "unit_ids": [u.get("pk") for u in units],
+        "units": [
+            {
+                "pk": u.get("pk"),
+                "title": u.get("title"),
+                "city": u.get("city"),
+                "ask": u.get("ask"),
+                "fair": u.get("fair"),
+                "deal_label": u.get("deal_label"),
+            }
+            for u in units
+        ],
+        "on_book": pack.get("on_book"),
+        "sourcing_gap": pack.get("sourcing_gap"),
+        "coverage_pct": pack.get("coverage_pct"),
+        "buy_asks": pack.get("buy_asks"),
+        "buy_total": pack.get("buy_total"),
+        "monthly": pack.get("monthly"),
+        "deal_mix": pack.get("deal_mix") or {},
+        "demand_top": [
+            {"city": row.get("city"), "n": row.get("n"), "index": row.get("index")}
+            for row in demand[:4]
+        ],
+    }
+
+
 def enrich_programs(size: int = 10) -> list[dict]:
     """Attach a default recommended pack summary to each fleet program card."""
     from market.services.fleets import fleet_programs

@@ -54,6 +54,12 @@ class Bid(models.Model):
 
 
 class ListingPrediction(models.Model):
+    TRUST_LABELS = [
+        ("high_trust", "High trust"),
+        ("review", "Review"),
+        ("caution", "Caution"),
+    ]
+
     motorcycle = models.OneToOneField(Motorcycle, related_name="prediction", on_delete=models.CASCADE)
     predicted_price = models.DecimalField(max_digits=12, decimal_places=2)
     deal_score = models.FloatField(help_text="Percent under model fair value; positive is a deal")
@@ -61,6 +67,10 @@ class ListingPrediction(models.Model):
     model_version = models.CharField(max_length=64, default="price_model.joblib")
     scored_at = models.DateTimeField(auto_now=True)
     features = models.JSONField(default=dict, blank=True)
+    trust_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    trust_label = models.CharField(max_length=20, blank=True, default="", choices=TRUST_LABELS)
+    trust_flags = models.JSONField(default=list, blank=True)
+    trust_completeness = models.FloatField(default=0.0)
 
     def __str__(self):
         return f"{self.motorcycle_id} {self.deal_label} {self.predicted_price}"
@@ -83,6 +93,11 @@ class FleetInquiry(models.Model):
     intent = models.CharField(max_length=10, choices=INTENT_CHOICES, default="buy")
     fleet_size = models.PositiveSmallIntegerField()
     notes = models.TextField(blank=True)
+    pack_snapshot = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Recommended pack quote captured at inquiry time",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

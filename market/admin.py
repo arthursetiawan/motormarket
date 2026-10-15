@@ -18,12 +18,28 @@ class BidAdmin(admin.ModelAdmin):
 
 @admin.register(FleetInquiry)
 class FleetInquiryAdmin(admin.ModelAdmin):
-    list_display = ("company_name", "city", "use_case", "intent", "fleet_size", "created_at")
+    list_display = ("company_name", "city", "use_case", "intent", "fleet_size", "coverage", "created_at")
     list_filter = ("use_case", "intent", "city")
     search_fields = ("company_name", "contact_name", "email")
+    readonly_fields = ("pack_snapshot",)
+
+    @admin.display(description="Coverage")
+    def coverage(self, obj):
+        snap = obj.pack_snapshot or {}
+        pct = snap.get("coverage_pct")
+        return f"{pct}%" if pct is not None else "—"
 
 
 @admin.register(ListingPrediction)
 class ListingPredictionAdmin(admin.ModelAdmin):
-    list_display = ("motorcycle", "predicted_price", "deal_score", "deal_label", "scored_at")
-    list_filter = ("deal_label",)
+    list_display = (
+        "motorcycle",
+        "predicted_price",
+        "deal_score",
+        "deal_label",
+        "trust_score",
+        "trust_label",
+        "scored_at",
+    )
+    list_filter = ("deal_label", "trust_label")
+    readonly_fields = ("trust_flags", "features")
