@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Arthur Setiawan — Data Scientist & Product Builder</title>
-  <meta name="description" content="Arthur Setiawan — Motormarket, ML pipelines, and production web apps.">
+  <title>Arthur Setiawan — Motormarket &amp; ML products</title>
+  <meta name="description" content="Arthur Setiawan — Motormarket motorcycle auctions, ML pipelines, and production web apps.">
   <link rel="icon" href="favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,16 +15,21 @@
       --ink-soft: #2f4a6b;
       --muted: #5a7190;
       --blue-950: #061428;
+      --blue-900: #0a2744;
       --blue-800: #0e3a66;
+      --blue-700: #1557a0;
       --blue-600: #1a6fd4;
       --blue-400: #5b9cf0;
+      --blue-50: #e6f0fb;
       --line: #b9d0ea;
       --surface: #ffffff;
       --bg: #cfe0f5;
-      --font-display: "Barlow Condensed", sans-serif;
+      --bg-mid: #b6d0ee;
+      --bg-deep: #9bbce4;
+      --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
       --font-body: "Manrope", sans-serif;
-      --max: 1080px;
-      --radius: 10px;
+      --max: 1120px;
+      --radius: 6px;
     }
 
     * { box-sizing: border-box; }
@@ -33,29 +38,33 @@
       margin: 0;
       font-family: var(--font-body);
       color: var(--ink);
-      background:
-        radial-gradient(ellipse 900px 500px at 10% -10%, rgba(91, 156, 240, 0.5), transparent 55%),
-        radial-gradient(ellipse 700px 420px at 100% 0%, rgba(26, 111, 212, 0.28), transparent 50%),
-        linear-gradient(180deg, #a8c8ec 0%, var(--bg) 35%, #9bbce4 100%);
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 900px 520px at 12% -8%, rgba(91, 156, 240, 0.55), transparent 58%),
+        radial-gradient(ellipse 800px 480px at 92% 8%, rgba(26, 111, 212, 0.35), transparent 55%),
+        linear-gradient(180deg, #a8c8ec 0%, var(--bg) 28%, var(--bg-mid) 68%, var(--bg-deep) 100%);
       background-attachment: fixed;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
-    a { color: var(--blue-600); text-decoration: none; }
+    a { color: var(--blue-700); text-decoration: none; transition: color 0.15s ease; }
     a:hover { color: var(--blue-400); }
+    img { max-width: 100%; display: block; }
 
     .shell { min-height: 100vh; display: flex; flex-direction: column; }
 
     .top {
-      position: sticky; top: 0; z-index: 20;
+      position: sticky; top: 0; z-index: 30;
+      height: 64px;
       backdrop-filter: blur(12px);
-      background: rgba(6, 20, 40, 0.92);
-      border-bottom: 1px solid rgba(91, 156, 240, 0.2);
+      background: rgba(6, 20, 40, 0.94);
+      border-bottom: 1px solid rgba(91, 156, 240, 0.22);
     }
     .top-inner {
       max-width: var(--max);
       margin: 0 auto;
-      padding: 14px 20px;
+      padding: 0 20px;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -64,31 +73,34 @@
     .logo {
       font-family: var(--font-display);
       font-weight: 800;
-      font-size: 1.25rem;
+      font-size: 1.35rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       color: #fff;
     }
     .logo span { color: var(--blue-400); }
-    .nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
     .nav a {
-      color: rgba(255,255,255,0.8);
+      color: rgba(255,255,255,0.82);
       font-weight: 600;
       font-size: 0.875rem;
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: var(--radius);
     }
     .nav a:hover { color: #fff; background: rgba(255,255,255,0.08); }
     .nav .cta {
       background: var(--blue-600);
       color: #fff !important;
+      margin-left: 4px;
     }
-    .nav .cta:hover { background: #1557a0; }
+    .nav .cta:hover { background: var(--blue-700); }
 
+    /* —— Hero: brand + Motormarket CTA, full-bleed —— */
     .hero {
       position: relative;
       overflow: hidden;
-      min-height: calc(100vh - 58px);
+      min-height: calc(100vh - 64px);
+      min-height: calc(100svh - 64px);
       display: flex;
       align-items: flex-end;
       color: #fff;
@@ -97,176 +109,232 @@
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
-      object-position: 65% center;
+      object-position: 62% center;
+      transform: scale(1.04);
+      animation: drift 18s ease-in-out infinite alternate;
+    }
+    @keyframes drift {
+      from { transform: scale(1.04) translate3d(0, 0, 0); }
+      to { transform: scale(1.08) translate3d(-1.5%, -1%, 0); }
     }
     .hero-scrim {
       position: absolute; inset: 0;
       background:
-        linear-gradient(105deg, rgba(6,20,40,0.9) 0%, rgba(6,20,40,0.55) 45%, rgba(6,20,40,0.25) 100%),
-        linear-gradient(180deg, rgba(6,20,40,0.2) 0%, rgba(6,20,40,0.85) 100%);
+        linear-gradient(105deg, rgba(6,20,40,0.92) 0%, rgba(6,20,40,0.62) 42%, rgba(6,20,40,0.22) 100%),
+        linear-gradient(180deg, rgba(6,20,40,0.15) 0%, rgba(6,20,40,0.88) 100%);
     }
     .hero-copy {
       position: relative; z-index: 1;
       max-width: var(--max);
       width: 100%;
       margin: 0 auto;
-      padding: 48px 20px 64px;
-      animation: rise 0.65s ease-out both;
+      padding: 56px 20px 72px;
+      animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
     @keyframes rise {
-      from { opacity: 0; transform: translateY(16px); }
+      from { opacity: 0; transform: translateY(22px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .eyebrow {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--blue-400);
-      margin: 0 0 10px;
-    }
-    .hero h1 {
+    .brand-mark {
       font-family: var(--font-display);
       font-weight: 800;
-      font-size: clamp(2.8rem, 8vw, 4.6rem);
-      line-height: 0.95;
+      font-size: clamp(3rem, 9vw, 5.2rem);
+      line-height: 0.92;
       letter-spacing: 0.02em;
       text-transform: uppercase;
-      margin: 0 0 12px;
-      max-width: 12ch;
+      margin: 0 0 18px;
+      max-width: 14ch;
     }
-    .hero h1 em {
+    .brand-mark em {
       font-style: normal;
       color: var(--blue-400);
     }
+    .hero-headline {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      margin: 0 0 12px;
+      color: rgba(255,255,255,0.95);
+      max-width: 22ch;
+    }
     .lede {
       margin: 0 0 28px;
-      max-width: 36ch;
+      max-width: 38ch;
       font-size: 1.05rem;
       font-weight: 500;
+      line-height: 1.55;
       color: rgba(255,255,255,0.78);
     }
     .actions { display: flex; flex-wrap: wrap; gap: 12px; }
     .btn {
       display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px;
       font-family: var(--font-body);
       font-weight: 700;
       font-size: 0.95rem;
-      padding: 12px 20px;
-      border-radius: 6px;
+      padding: 13px 22px;
+      border-radius: var(--radius);
       border: 0;
       cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease;
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
     }
     .btn:hover { transform: translateY(-1px); }
     .btn-primary { background: var(--blue-600); color: #fff; }
-    .btn-primary:hover { background: #1557a0; color: #fff; }
+    .btn-primary:hover { background: var(--blue-700); color: #fff; }
     .btn-ghost {
       background: transparent;
       color: #fff;
       border: 1.5px solid rgba(255,255,255,0.45);
     }
     .btn-ghost:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn .arrow { transition: transform 0.15s ease; }
+    .btn:hover .arrow { transform: translateX(3px); }
 
-    .section {
+    /* —— Motormarket product band —— */
+    .mm-band {
+      background: var(--blue-950);
+      color: rgba(255,255,255,0.78);
+      border-top: 1px solid rgba(91, 156, 240, 0.25);
+      border-bottom: 1px solid rgba(91, 156, 240, 0.15);
+    }
+    .mm-inner {
       max-width: var(--max);
       margin: 0 auto;
-      padding: 48px 20px 24px;
-    }
-    .section-title {
-      font-family: var(--font-display);
-      font-size: clamp(1.6rem, 3vw, 2rem);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      margin: 0 0 8px;
-    }
-    .section-sub { color: var(--muted); margin: 0 0 24px; }
-
-    .feature {
+      padding: 56px 20px;
       display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 20px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      overflow: hidden;
-      box-shadow: 0 10px 28px rgba(21, 87, 160, 0.12);
-    }
-    .feature-media {
-      min-height: 280px;
-      background: #0a2744;
-    }
-    .feature-media img {
-      width: 100%; height: 100%;
-      object-fit: cover; display: block;
-      min-height: 280px;
-    }
-    .feature-body { padding: 28px 28px 28px 8px; display: flex; flex-direction: column; justify-content: center; }
-    @media (max-width: 800px) {
-      .feature { grid-template-columns: 1fr; }
-      .feature-body { padding: 22px; }
-    }
-    .feature h3 {
-      font-family: var(--font-display);
-      font-size: 1.8rem;
-      text-transform: uppercase;
-      margin: 0 0 8px;
-    }
-    .feature p { color: var(--ink-soft); margin: 0 0 16px; line-height: 1.55; }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; padding: 0; list-style: none; }
-    .chips li {
-      background: #e6f0fb;
-      color: var(--ink-soft);
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      padding: 6px 10px;
-      border-radius: 4px;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
-
-    .tile {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 22px;
-      box-shadow: 0 1px 2px rgba(10, 39, 68, 0.06);
-    }
-    .tile h3 {
-      font-family: var(--font-display);
-      text-transform: uppercase;
-      font-size: 1.35rem;
-      margin: 0 0 8px;
-    }
-    .tile p { margin: 0 0 14px; color: var(--ink-soft); font-size: 0.95rem; }
-
-    .contact {
-      display: flex; flex-wrap: wrap; gap: 12px 24px;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 36px;
       align-items: center;
-      justify-content: space-between;
-      background: var(--blue-950);
-      color: rgba(255,255,255,0.75);
-      border-radius: var(--radius);
-      padding: 22px 24px;
-      margin-top: 8px;
     }
-    .contact strong { color: #fff; display: block; font-family: var(--font-display); font-size: 1.3rem; text-transform: uppercase; letter-spacing: 0.03em; }
-    .contact a { color: var(--blue-400); font-weight: 700; }
+    @media (max-width: 860px) {
+      .mm-inner { grid-template-columns: 1fr; gap: 28px; }
+    }
+    .mm-kicker {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--blue-400);
+      margin: 0 0 10px;
+    }
+    .mm-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #fff;
+      margin: 0 0 12px;
+      line-height: 1.05;
+    }
+    .mm-title span { color: var(--blue-400); }
+    .mm-copy {
+      margin: 0 0 22px;
+      max-width: 42ch;
+      line-height: 1.6;
+      font-size: 1rem;
+    }
+    .mm-meta {
+      display: flex; flex-wrap: wrap; gap: 8px 18px;
+      margin: 0 0 24px;
+      padding: 0;
+      list-style: none;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+    }
+    .mm-meta li { position: relative; }
+    .mm-meta li:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: -11px;
+      top: 50%;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--blue-400);
+      transform: translateY(-50%);
+      opacity: 0.7;
+    }
+    .mm-visual {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+      aspect-ratio: 4 / 3;
+      background: var(--blue-900);
+      animation: fade-in 0.9s ease 0.15s both;
+    }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .mm-visual img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .mm-visual::after {
+      content: "";
+      position: absolute; inset: 0;
+      box-shadow: inset 0 0 0 1px rgba(91, 156, 240, 0.35);
+      pointer-events: none;
+      border-radius: 10px;
+    }
+
+    .elsewhere {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 48px 20px 56px;
+    }
+    .elsewhere h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0 0 8px;
+    }
+    .elsewhere p {
+      margin: 0 0 20px;
+      color: var(--ink-soft);
+      max-width: 48ch;
+    }
+    .link-row {
+      display: flex; flex-wrap: wrap; gap: 10px 12px;
+    }
+    .link-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink);
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .link-pill:hover {
+      background: #fff;
+      color: var(--blue-700);
+      transform: translateY(-1px);
+    }
 
     footer {
       margin-top: auto;
-      padding: 28px 20px;
+      padding: 22px 20px;
       text-align: center;
       color: rgba(255,255,255,0.55);
       background: var(--blue-950);
       font-size: 0.85rem;
+    }
+    footer a { color: var(--blue-400); font-weight: 700; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero-media, .hero-copy, .mm-visual { animation: none; }
+      .btn:hover, .link-pill:hover { transform: none; }
     }
   </style>
 </head>
@@ -276,7 +344,7 @@
       <div class="top-inner">
         <a class="logo" href="./">Arthur <span>Setiawan</span></a>
         <nav class="nav" aria-label="Main">
-          <a href="#work">Work</a>
+          <a href="#motormarket">Motormarket</a>
           <a href="resume/index.html">Resume</a>
           <a href="https://github.com/arthursetiawan" target="_blank" rel="noopener">GitHub</a>
           <a class="cta" href="motormarket/">Open Motormarket</a>
@@ -288,72 +356,55 @@
       <img class="hero-media" src="motormarket/img/listings/kawasaki-ninja-250.jpg" alt="">
       <div class="hero-scrim" aria-hidden="true"></div>
       <div class="hero-copy">
-        <p class="eyebrow">Full-stack data scientist</p>
-        <h1>Arthur <em>Setiawan</em></h1>
-        <p class="lede">I build production ML and marketplace products — Motormarket is the flagship: auctions, fair value, and fleet intelligence.</p>
+        <p class="brand-mark">Arthur <em>Setiawan</em></p>
+        <h1 class="hero-headline">Motormarket — auctions with fair-value intelligence</h1>
+        <p class="lede">Full-stack data scientist shipping marketplace ML for Indonesian riders. Open the hosted Motormarket demo in one click.</p>
         <div class="actions">
-          <a class="btn btn-primary" href="motormarket/">Open Motormarket</a>
-          <a class="btn btn-ghost" href="https://github.com/arthursetiawan/motormarket" target="_blank" rel="noopener">View source</a>
+          <a class="btn btn-primary" href="motormarket/">Open Motormarket <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn btn-ghost" href="https://github.com/arthursetiawan/motormarket" target="_blank" rel="noopener">Source on GitHub</a>
         </div>
       </div>
     </section>
 
-    <section class="section" id="work">
-      <h2 class="section-title">Featured work</h2>
-      <p class="section-sub">One product, end to end — not a wall of half-finished cards.</p>
-
-      <article class="feature">
-        <div class="feature-media">
-          <img src="motormarket/img/listings/honda-pcx-160.jpg" alt="MotorMarket listing photo">
-        </div>
-        <div class="feature-body">
-          <h3>MotorMarket</h3>
-          <p>Blue-themed motorcycle auction marketplace for Indonesia: image-first listings, live bids, deal scoring, trust signals, and B2B fleet packs — Django, Channels, DRF, and a sold-price ML spine.</p>
-          <ul class="chips">
+    <section class="mm-band" id="motormarket" aria-labelledby="mm-heading">
+      <div class="mm-inner">
+        <div>
+          <p class="mm-kicker">Flagship product</p>
+          <h2 class="mm-title" id="mm-heading">Motor<span>Market</span></h2>
+          <p class="mm-copy">
+            Image-first motorcycle auctions with live bidding, deal scoring, trust signals, and B2B fleet packs —
+            Django, Channels, DRF, and a sold-price ML spine.
+          </p>
+          <ul class="mm-meta">
             <li>Django</li>
             <li>Channels</li>
             <li>scikit-learn</li>
             <li>DRF</li>
           </ul>
           <div class="actions">
-            <a class="btn btn-primary" href="motormarket/">Open hosted demo</a>
-            <a class="btn btn-ghost" style="color:var(--ink);border-color:var(--line)" href="https://github.com/arthursetiawan/motormarket" target="_blank" rel="noopener">GitHub</a>
+            <a class="btn btn-primary" href="motormarket/">Launch hosted demo <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn btn-ghost" href="motormarket/auctions.html">Browse auctions</a>
           </div>
         </div>
-      </article>
+        <a class="mm-visual" href="motormarket/" aria-label="Open Motormarket demo">
+          <img src="motormarket/img/listings/honda-pcx-160.jpg" alt="MotorMarket listing photo">
+        </a>
+      </div>
     </section>
 
-    <section class="section">
-      <h2 class="section-title">Also</h2>
-      <p class="section-sub">Related automotive ML and data work.</p>
-      <div class="grid-2">
-        <article class="tile">
-          <h3>Car Recommender</h3>
-          <p>Scrapers, feature engineering, and a lightweight recommendation API backed by flexible JSON storage.</p>
-          <a class="btn btn-primary" href="https://github.com/arthursetiawan/car_recommender" target="_blank" rel="noopener">View repo</a>
-        </article>
-        <article class="tile">
-          <h3>Resume</h3>
-          <p>ML pipelines, model deployment, and production services — backend &amp; data science roles.</p>
-          <a class="btn btn-primary" href="resume/index.html">View resume</a>
-        </article>
-      </div>
-
-      <div class="contact" style="margin-top:24px">
-        <div>
-          <strong>Let’s talk</strong>
-          Available for backend, ML, and product engineering roles.
-        </div>
-        <div>
-          <a href="mailto:rthrsetiawan@gmail.com">rthrsetiawan@gmail.com</a>
-          ·
-          <a href="https://github.com/arthursetiawan" target="_blank" rel="noopener">GitHub</a>
-        </div>
+    <section class="elsewhere" aria-label="More">
+      <h2>Elsewhere</h2>
+      <p>Resume and related automotive ML work — Motormarket stays the main lane.</p>
+      <div class="link-row">
+        <a class="link-pill" href="resume/index.html">Resume</a>
+        <a class="link-pill" href="https://github.com/arthursetiawan/car_recommender" target="_blank" rel="noopener">Car Recommender</a>
+        <a class="link-pill" href="https://github.com/arthursetiawan" target="_blank" rel="noopener">All repos</a>
+        <a class="link-pill" href="mailto:rthrsetiawan@gmail.com">Email</a>
       </div>
     </section>
 
     <footer>
-      © 2026 Arthur Setiawan · <a href="motormarket/" style="color:#5b9cf0">Motormarket</a>
+      © 2026 Arthur Setiawan · <a href="motormarket/">Motormarket</a>
     </footer>
   </div>
 </body>
