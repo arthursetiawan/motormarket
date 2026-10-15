@@ -1,5 +1,7 @@
 # Copilot Instructions — MotorMarket repository
 
+**Cursor users:** start with `AGENTS.md` and `docs/CURSOR.md`; persistent rules are in `.cursor/rules/*.mdc`.
+
 Purpose
 
 This file tells the automated developer (GitHub Copilot) how to work on this repository so it stays clean, well-documented, and focused on the user's goals: a production-like Django app (MotorMarket) suitable for a portfolio and learning.

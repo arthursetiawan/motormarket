@@ -1,0 +1,37 @@
+---
+description: Django app patterns for market and templates
+globs: market/**/*.py,motormarket/**/*.py,templates/**/*.html,static/**/*
+alwaysApply: false
+---
+
+# Django backend
+
+## Layout
+
+- URLs: `motormarket/urls.py` → `market/urls.py`, `market/api/urls.py`, allauth under `accounts/`.
+- Views stay thin; reusable logic in `market/services/` (e.g. pricing, desk).
+- Template tags in `market/templatetags/` (e.g. price formatting).
+
+## Patterns
+
+- Validate with forms; persist in views or services; keep queryset logic out of templates.
+- API: serializers in `market/api/serializers.py`, views in `market/api/views.py`.
+- Realtime: `market/consumers.py` + `market/routing.py`; test with Redis/Daphne when touching bids.
+- Admin: register models with useful `list_display`, filters, search.
+
+## Media & storage
+
+- Local: `MEDIA_ROOT` + default storage.
+- Production-style: `USE_S3` and storages env vars (see `.env.example`).
+
+## Example (thin view)
+
+```python
+# Prefer delegating to a service
+from market.services.pricing import estimate_listing_price
+
+def detail(request, pk):
+    listing = get_object_or_404(Listing, pk=pk)
+    estimate = estimate_listing_price(listing)
+    return render(request, "market/detail.html", {"listing": listing, "estimate": estimate})
+```

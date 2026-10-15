@@ -1,0 +1,32 @@
+---
+description: MotorMarket stack, safety, and definition of done
+alwaysApply: true
+---
+
+# MotorMarket core
+
+## Stack
+
+- Backend: Django 4.2, django-allauth, DRF, Channels + Redis, sorl-thumbnail.
+- Frontend (optional): React + Vite in `frontend/`; primary UX is still Django templates.
+- ML: pandas/sklearn in `ml/`; artifacts under `artifacts/`; paths in `ml/paths.py`.
+
+## Do not
+
+- Commit `.env`, `db.sqlite3`, `.venv/`, or cloud credentials.
+- Hardcode new secrets in `settings.py`; use environment variables and `.env.example`.
+- Replace server-rendered flows with SPA work unless the user asks.
+
+## Definition of done
+
+1. Behavior matches the stated success check (page URL or management command output).
+2. `python manage.py check` passes.
+3. Add or update tests when changing models, forms, API, or bidding logic.
+4. If setup or user-facing behavior changed, update `README.md` (short “what / why / how to verify”).
+5. Model or pricing behavior changes: refresh `artifacts/reports/MODEL_CARD.md` metrics/limitations.
+
+## Conventions
+
+- Branch naming: `feature/…`, `fix/…`, `chore/…`.
+- Match existing style in neighboring files; minimal scope.
+- See `AGENTS.md` and `copilot-instructions.md` for architecture detail.

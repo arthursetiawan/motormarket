@@ -1,0 +1,34 @@
+---
+description: ML training, scoring, and artifact layout
+globs: ml/**/*.py,market/management/commands/train_price_model.py,market/management/commands/score_listings.py,artifacts/**/*
+alwaysApply: false
+---
+
+# ML pipeline
+
+## Data flow
+
+1. `ml/generate.py` / ETL → `data/raw`, `data/staging`, `data/gold`
+2. `ml/train.py` → `artifacts/models/price_model.joblib`, `feature_spec.json`
+3. `ml/score.py` → listing intelligence fields via management commands or services
+4. Reports: `artifacts/reports/metrics.json`, `MODEL_CARD.md`, `feature_importance.json`
+
+## Commands
+
+```bash
+python manage.py train_price_model --n 4000 --seed 42
+python manage.py score_listings
+python -m ml.train   # direct module entry if present
+```
+
+## Rules
+
+- Import paths from `ml/paths.py`; call `ensure_dirs()` before writing artifacts.
+- After retraining, call `clear_model_cache()` (see `train_price_model` command).
+- Update **Limitations** in `MODEL_CARD.md` when features or data change—not only metrics.
+- Portfolio-safe data: synthetic/historical extracts only; no scraping live marketplaces in code.
+
+## Integration
+
+- Django should load the joblib model lazily and handle missing artifacts gracefully in dev.
+- Display prices in IDR consistently with `market/templatetags/price_tags.py`.
