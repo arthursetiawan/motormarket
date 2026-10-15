@@ -12,8 +12,10 @@ from ml.paths import IMPORTANCE_PATH, METRICS_PATH
 from ml.recommend import similar_listings
 from market.models import Bid, Motorcycle
 from market.services.desk import listing_desk, market_board
-from market.services.fleets import PROGRAMS, fleet_programs
+from market.services.fleet_intel import enrich_programs, market_coverage, recommend_pack
+from market.services.fleets import PROGRAMS
 from market.services.pricing import listings_frame, score_listing
+from market.services.trust import TRUST_COPY, listing_trust
 from .forms import FleetInquiryForm, MotorcycleForm
 
 
@@ -65,6 +67,8 @@ def motorcycle_detail(request, pk):
     prediction = getattr(motorcycle, "prediction", None)
     if prediction is None:
         prediction = score_listing(motorcycle)
+        if prediction is not None:
+            motorcycle.prediction = prediction
 
     similar = []
     all_frame = listings_frame(Motorcycle.objects.all()[:120])
@@ -77,6 +81,7 @@ def motorcycle_detail(request, pk):
         except (ValueError, KeyError):
             similar = []
 
+    trust = listing_trust(motorcycle)
     return render(
         request,
         "market/detail.html",
@@ -86,6 +91,8 @@ def motorcycle_detail(request, pk):
             "prediction": prediction,
             "similar": similar,
             "desk": listing_desk(motorcycle),
+            "trust": trust,
+            "trust_copy": TRUST_COPY.get(trust.label, ""),
         },
     )
 
@@ -162,6 +169,12 @@ def profile(request):
 
 
 def fleets(request):
+    program = request.GET.get("program")
+    size_raw = request.GET.get("size")
+    size = int(size_raw) if size_raw and size_raw.isdigit() else 10
+    size = max(5, min(size, 200))
+    city = (request.GET.get("city") or "").strip()
+
     if request.method == "POST":
         form = FleetInquiryForm(request.POST)
         if form.is_valid():
@@ -173,16 +186,33 @@ def fleets(request):
             return redirect("fleets")
     else:
         initial = {}
-        program = request.GET.get("program")
         if program in {row["slug"] for row in PROGRAMS}:
             initial["use_case"] = program
         if request.GET.get("intent") in ("buy", "rent"):
             initial["intent"] = request.GET["intent"]
-        size = request.GET.get("size")
-        if size and size.isdigit() and 5 <= int(size) <= 500:
-            initial["fleet_size"] = int(size)
+        if 5 <= size <= 500:
+            initial["fleet_size"] = size
+        if city:
+            initial["city"] = city
         form = FleetInquiryForm(initial=initial)
-    return render(request, "market/fleets.html", {"programs": fleet_programs(), "form": form})
+
+    pack = None
+    if program in {row["slug"] for row in PROGRAMS}:
+        pack = recommend_pack(program, size=size, preferred_city=city or None)
+
+    return render(
+        request,
+        "market/fleets.html",
+        {
+            "programs": enrich_programs(size=10),
+            "form": form,
+            "pack": pack,
+            "pack_program": program or "",
+            "pack_size": size,
+            "pack_city": city,
+            "pack_sizes": (10, 25, 50, 100),
+        },
+    )
 
 
 def insights(request):
@@ -203,6 +233,7 @@ def insights(request):
         {
             "metrics": metrics,
             "importance": importance,
+            "fleet_coverage": market_coverage(),
             **board,
         },
     )

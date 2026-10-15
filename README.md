@@ -19,8 +19,9 @@ frontend/             Optional React + Vite (not required to run the site)
 | `/` | Home |
 | `/market/` | Listings index |
 | `/market/motorcycle/<id>/` | Detail + bidding |
-| `/market/insights/` | Market / pricing insights |
-| `/api/` | DRF endpoints |
+| `/market/insights/` | Market / pricing insights + fleet coverage |
+| `/market/fleets/` | B2B fleet programs, pack recommendations, inquiries |
+| `/api/` | DRF endpoints (pricing, trust, fleet packs) |
 | `/admin/` | Django admin |
 
 Agent and editor context: **`AGENTS.md`** (quick index), **`copilot-instructions.md`** (detailed conventions), **`docs/CURSOR.md`** (Cursor workflow).
@@ -59,6 +60,13 @@ python manage.py score_listings       # scores listings from the model
 ```
 
 Model documentation: `artifacts/reports/MODEL_CARD.md`.
+
+**Data-science product surfaces**
+
+- Listing fair value + deal badges (price model)
+- Listing trust score on detail pages (`ml/trust.py`)
+- Fleet pack recommendations + city demand index (`market/services/fleet_intel.py`)
+- API: `GET /api/motorcycles/<id>/trust/`, `GET /api/fleets/pack/?program=delivery&size=25`, `GET /api/fleets/coverage/`
 
 ## Environment variables
 
