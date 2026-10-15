@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react'
+import { Link } from 'react-router-dom'
 
 export default function Listings(){
   const [listings, setListings] = useState([])
@@ -11,19 +12,24 @@ export default function Listings(){
       .catch(err=>{ console.error(err); setLoading(false) })
   },[])
 
-  if (loading) return <div style={{padding:20}}>Loading...</div>
+  if (loading) return <div className="mm-wrap">Loading auctions…</div>
 
   return (
-    <div style={{padding:20}}>
-      <h1>Listings</h1>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:12}}>
+    <div className="mm-wrap">
+      <nav className="mm-nav">
+        <Link to="/">Home</Link>
+        <Link to="/market">Auctions</Link>
+      </nav>
+      <h1 className="mm-brand">Live <span>auctions</span></h1>
+      <p className="mm-lede">Motorcycle listings from the MotorMarket API</p>
+      <div className="mm-grid">
         {listings.map(l=> (
-          <div key={l.id} style={{border:'1px solid #ddd',padding:12,borderRadius:8}}>
-            {l.thumbnail && <img src={l.thumbnail} style={{width:'100%',height:140,objectFit:'cover',borderRadius:6}} alt={l.title} />}
+          <article key={l.id} className="mm-card">
+            {l.thumbnail && <img src={l.thumbnail} alt={l.title} />}
             <h3>{l.title}</h3>
-            <div style={{color:'#666'}}>{l.make} • {l.year}</div>
-            <div style={{fontWeight:700}}>Rp {l.start_price}</div>
-          </div>
+            <div className="meta">{l.make} · {l.year}</div>
+            <div className="price">Rp {l.start_price}</div>
+          </article>
         ))}
       </div>
     </div>

@@ -1,57 +1,59 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MotorMarket — Buy & Bid Motorcycles (Indonesia)</title>
-  {% load static %}
-  {% load humanize %}
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
-  <div class="container">
-    <header class="site-header">
-      <h1>MotorMarket</h1>
-      <p class="tagline">Online bidding platform for motorcycles</p>
-      <nav>
-        {% if user.is_authenticated %}
-          <a href="{% url 'profile' %}">My Profile</a>
-          <a href="{% url 'create_listing' %}">Create</a>
-          <a href="{% url 'account_logout' %}">Logout</a>
-        {% else %}
-          <a href="{% url 'account_login' %}">Login</a>
-          <a href="{% url 'account_signup' %}">Sign up</a>
-        {% endif %}
-      </nav>
-    </header>
+{% extends "base.html" %}
+{% load humanize %}
+{% load thumb_tags %}
 
-    <section class="hero">
-      <div class="hero-inner">
-        <h2>Find your next motorcycle</h2>
-        <p class="muted">Trusted listings, transparent bidding, built for Indonesian riders.</p>
-        <a class="btn" href="{% url 'index' %}">Browse listings</a>
-      </div>
-    </section>
+{% block title %}MotorMarket — Buy & Bid Motorcycles{% endblock %}
 
-    <section>
-      <h3>Featured listings</h3>
-      <div class="grid">
-        {% for m in featured %}
-        <article class="card">
-          <h4><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h4>
-          <p class="meta">{{ m.make }} • {{ m.year }}</p>
-          <p class="price">{{ m.start_price|intcomma }}</p>
-          <p class="desc">{{ m.description|truncatewords:20 }}</p>
-        </article>
-        {% empty %}
-        <p>No featured listings available.</p>
-        {% endfor %}
-      </div>
-    </section>
-
-    <footer class="site-footer">
-      <p>&copy; MotorMarket</p>
-    </footer>
+{% block full_bleed %}
+<section class="hero-bleed" aria-label="MotorMarket">
+  <div class="hero-content">
+    <p class="hero-brand">Motor<span>Market</span></p>
+    <h1 class="hero-headline">Bid on motorcycles you actually want</h1>
+    <p class="hero-lede">Transparent auctions for Indonesian riders — clean listings, live bidding, no fluff.</p>
+    <div class="hero-actions">
+      <a class="btn" href="{% url 'index' %}">Browse auctions</a>
+      {% if user.is_authenticated %}
+        <a class="btn btn-ghost" href="{% url 'create_listing' %}">List a bike</a>
+      {% else %}
+        <a class="btn btn-ghost" href="{% url 'account_signup' %}">Create account</a>
+      {% endif %}
+    </div>
   </div>
-</body>
-</html>
+</section>
+{% endblock %}
+
+{% block content_wrapper %}
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Featured auctions</h2>
+        <p class="section-sub">Fresh listings from sellers across Indonesia</p>
+      </div>
+      <a class="link-more" href="{% url 'index' %}">View all →</a>
+    </div>
+    <div class="grid">
+      {% for m in featured %}
+      <article class="card">
+        <div class="card-media">
+          {% if m.image %}
+            <img src="{% thumb m.image '600x400' %}" alt="{{ m.title }}">
+          {% else %}
+            <div class="placeholder">No photo</div>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <h3 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h3>
+          <p class="meta">{% if m.make %}{{ m.make }}{% else %}Motorcycle{% endif %}{% if m.year %} · {{ m.year }}{% endif %}</p>
+          <p class="price"><span class="price-label">Starting bid</span>Rp {{ m.start_price|intcomma }}</p>
+          <p class="desc">{{ m.description|truncatewords:18 }}</p>
+          <a class="btn" href="{% url 'motorcycle_detail' m.pk %}">View &amp; bid</a>
+        </div>
+      </article>
+      {% empty %}
+      <p class="empty-state">No featured listings yet — be the first to sell.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

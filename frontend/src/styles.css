@@ -1,0 +1,87 @@
+/* Aligns React scaffold with MotorMarket Django blue theme */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Manrope:wght@400;600;700&display=swap');
+
+:root {
+  --blue-950: #061428;
+  --blue-700: #1557a0;
+  --blue-600: #1a6fd4;
+  --blue-400: #5b9cf0;
+  --ink: #0c1a2e;
+  --muted: #6b7c91;
+  --line: #d5e0ee;
+  --surface: #ffffff;
+  --bg: #eef3f9;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background:
+    radial-gradient(1000px 500px at 10% -10%, rgba(43, 125, 233, 0.12), transparent 55%),
+    linear-gradient(180deg, #f2f7fd, var(--bg));
+  min-height: 100vh;
+}
+
+.mm-wrap { max-width: 1120px; margin: 0 auto; padding: 24px 20px; }
+
+.mm-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 8px;
+}
+
+.mm-brand span { color: var(--blue-600); }
+
+.mm-lede { color: var(--muted); margin: 0 0 24px; }
+
+.mm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.mm-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 0 0 14px;
+}
+
+.mm-card img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.mm-card h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  margin: 12px 14px 4px;
+  font-size: 1.15rem;
+}
+
+.mm-card .meta { color: var(--muted); font-size: 0.85rem; margin: 0 14px; }
+.mm-card .price {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--blue-700);
+  font-size: 1.25rem;
+  margin: 8px 14px 0;
+}
+
+.mm-nav { display: flex; gap: 12px; margin-bottom: 20px; }
+.mm-nav a {
+  color: var(--blue-700);
+  font-weight: 700;
+  text-decoration: none;
+}
