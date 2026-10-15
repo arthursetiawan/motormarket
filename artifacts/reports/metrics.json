@@ -1,0 +1,29 @@
+{
+  "trained_at": "2026-10-15T03:54:59.929433+00:00",
+  "n_train": 2000,
+  "n_test": 500,
+  "mae_idr": 823441.0,
+  "rmse_idr": 2117386.0,
+  "mape_pct": 4.87,
+  "r2": 0.9918,
+  "residual_p50": 1967.4704384072684,
+  "residual_p90_abs": 2563756.1132398522,
+  "quality": {
+    "rows": 2500,
+    "passed": true,
+    "failures": [],
+    "checks": {
+      "not_empty": true,
+      "required_columns": true,
+      "year_range": true,
+      "mileage_nonneg": true,
+      "engine_positive": true,
+      "asking_positive": true,
+      "null_rate": true,
+      "sold_positive": true,
+      "sold_ask_ratio": true
+    }
+  },
+  "split": "time-based 80/20 by listed_at",
+  "algorithm": "HistGradientBoostingRegressor"
+}

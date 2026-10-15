@@ -1,0 +1,58 @@
+[
+  {
+    "feature": "model_name",
+    "importance": 9169024.433810411
+  },
+  {
+    "feature": "mileage_km",
+    "importance": 5327202.5490772575
+  },
+  {
+    "feature": "year",
+    "importance": 3526848.9146256326
+  },
+  {
+    "feature": "make",
+    "importance": 1151471.6210224628
+  },
+  {
+    "feature": "condition",
+    "importance": 649936.450594573
+  },
+  {
+    "feature": "engine_cc",
+    "importance": 608177.1009205626
+  },
+  {
+    "feature": "segment",
+    "importance": 366936.7058632748
+  },
+  {
+    "feature": "age",
+    "importance": 216483.72957258648
+  },
+  {
+    "feature": "km_per_year",
+    "importance": 136412.7090639683
+  },
+  {
+    "feature": "city",
+    "importance": 129637.15052855884
+  },
+  {
+    "feature": "is_premium",
+    "importance": 33800.19992490746
+  },
+  {
+    "feature": "owners_count",
+    "importance": 13838.685401503812
+  },
+  {
+    "feature": "transmission",
+    "importance": 4859.707759633151
+  },
+  {
+    "feature": "fuel_type",
+    "importance": 0.0
+  }
+]
