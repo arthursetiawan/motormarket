@@ -42,9 +42,8 @@
 <section class="grid">
   {% for m in motorcycles %}
   <article class="card">
-    {% if m.image %}
-    <img src="{% thumb m.image '600x400' %}" alt="{{ m.title }}">
-    {% endif %}
+    {% listing_photo m as photo %}
+    <img src="{{ photo }}" alt="{{ m.title }}">
     {% if m.prediction %}
     <span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>
     {% endif %}

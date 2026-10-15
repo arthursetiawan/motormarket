@@ -9,11 +9,8 @@
 <h2>{{ motorcycle.title }}</h2>
 <div class="detail-grid">
   <div class="media">
-    {% if motorcycle.image %}
-    <img src="{% thumb motorcycle.image '800x600' %}" alt="{{ motorcycle.title }}" class="detail-image">
-    {% else %}
-    <div class="placeholder">No image</div>
-    {% endif %}
+    {% listing_photo motorcycle as photo %}
+    <img src="{{ photo }}" alt="{{ motorcycle.title }}" class="detail-image">
   </div>
   <div class="info">
     <p class="meta">{{ motorcycle.make }} {{ motorcycle.model_name }} · {{ motorcycle.year }} · {{ motorcycle.engine_cc }}cc · {{ motorcycle.condition|title }} · {{ motorcycle.mileage_km }} km</p>
@@ -120,6 +117,8 @@
   <div class="grid">
     {% for m in similar %}
     <article class="card">
+      {% listing_photo m as photo %}
+      <img src="{{ photo }}" alt="{{ m.title }}">
       {% if m.prediction %}<span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>{% endif %}
       <h4><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h4>
       <p class="meta">{{ m.city }} · {{ m.mileage_km }} km</p>

@@ -64,3 +64,29 @@ class ListingPrediction(models.Model):
 
     def __str__(self):
         return f"{self.motorcycle_id} {self.deal_label} {self.predicted_price}"
+
+
+class FleetInquiry(models.Model):
+    USE_CHOICES = [
+        ("delivery", "Last-mile delivery"),
+        ("ride_hailing", "Ride-hailing"),
+        ("tourism", "Tourism rental"),
+        ("field", "Field sales"),
+    ]
+    INTENT_CHOICES = [("buy", "Buy"), ("rent", "Rent")]
+
+    company_name = models.CharField(max_length=160)
+    contact_name = models.CharField(max_length=120)
+    email = models.EmailField()
+    city = models.CharField(max_length=80)
+    use_case = models.CharField(max_length=40, choices=USE_CHOICES)
+    intent = models.CharField(max_length=10, choices=INTENT_CHOICES, default="buy")
+    fleet_size = models.PositiveSmallIntegerField()
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.company_name} · {self.get_use_case_display()} · {self.fleet_size}"

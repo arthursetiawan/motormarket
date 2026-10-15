@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% load price_tags %}
+
+{% block title %}Fleets — MotorMarket{% endblock %}
+
+{% block content %}
+<section class="fleet-hero">
+  <img src="{% static 'img/fleets/fleet-hero.jpg' %}" alt="Scooters lined up in a depot yard">
+  <div class="fleet-hero-copy">
+    <p class="eyebrow">For companies</p>
+    <h2>Put a whole fleet on the road</h2>
+    <p>Delivery, ride-hailing, guest rental, or a sales team. Pick a program, see what it costs, and tell us how many bikes you need.</p>
+    <a class="btn" href="#quote">Request a quote</a>
+  </div>
+</section>
+
+<section class="fleet-grid">
+  {% for program in programs %}
+  <article class="card fleet-card">
+    <img class="fleet-photo" src="{% static program.image %}" alt="{{ program.name }}">
+    <div class="fleet-body">
+      <p class="eyebrow">{{ program.audience }}</p>
+      <h3>{{ program.name }}</h3>
+      <p>{{ program.pitch }}</p>
+      <ul class="chips">
+        {% for city in program.cities %}
+        <li>{{ city }}</li>
+        {% endfor %}
+      </ul>
+      <p class="fleet-models">{{ program.models|join:" · " }}</p>
+      <div class="fleet-facts">
+        <div>
+          <span>Ready now</span>
+          <strong>{{ program.available }}</strong>
+        </div>
+        <div>
+          <span>In these cities</span>
+          <strong>{{ program.in_cities }}</strong>
+        </div>
+        <div>
+          <span>Typical bike</span>
+          <strong>{% if program.avg_fair %}{{ program.avg_fair|currency_idr }}{% else %}Ask us{% endif %}</strong>
+        </div>
+      </div>
+      {% if program.quotes %}
+      <div class="quote-picks">
+        {% for quote in program.quotes %}
+        <a class="quote-pick" href="{% url 'fleets' %}?program={{ program.slug }}&size={{ quote.size }}#quote">
+          <strong>{{ quote.size }} bikes</strong>
+          <span>Buy {{ quote.buy_total|currency_idr }}</span>
+          <span>Rent {{ quote.monthly|currency_idr }}/mo</span>
+        </a>
+        {% endfor %}
+      </div>
+      <p class="meta">{% if program.avg_km %}Matching bikes average {{ program.avg_km|intcomma }} km. {% endif %}The live book covers part of a larger order. We’ll source the rest.</p>
+      {% else %}
+      <p class="muted">We’ll price this once matching bikes are on the book.</p>
+      {% endif %}
+      <a class="btn" href="{% url 'fleets' %}?program={{ program.slug }}#quote">Request this fleet</a>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="card quote-panel" id="quote">
+  <div>
+    <p class="eyebrow">About two minutes</p>
+    <h3>Tell us what you need</h3>
+    <p>Buy prices use the average fair value of matching bikes. Rent is that value spread over 36 months, plus 25%. Service, insurance, and plates are extra.</p>
+  </div>
+  <form method="post" class="fleet-form">
+    {% csrf_token %}
+    {% for field in form %}
+    <label class="{% if field.name == 'notes' %}span-2{% endif %}">
+      {{ field.label }}
+      {{ field }}
+      {% if field.errors %}<span class="field-error">{{ field.errors|striptags }}</span>{% endif %}
+    </label>
+    {% endfor %}
+    <button class="btn" type="submit">Send request</button>
+  </form>
+</section>
+{% endblock %}

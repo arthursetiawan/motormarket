@@ -11,7 +11,8 @@ body{font-family:Inter,ui-sans-serif,system-ui, -apple-system, 'Segoe UI', Robot
 .site-header h1{margin:0}
 .tagline{color:var(--muted); margin:0}
 .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px}
-.card{background:var(--card); border-radius:10px; padding:16px; box-shadow:0 1px 3px rgba(15,23,42,0.06)}
+.card{background:var(--card); border-radius:10px; padding:16px; box-shadow:0 1px 3px rgba(15,23,42,0.06); overflow:hidden}
+.card > img{width:calc(100% + 32px); max-width:none; margin:-16px -16px 12px; height:180px; object-fit:cover; border-radius:0}
 .card-title{margin:0 0 8px 0; font-size:1.1rem}
 .meta{color:var(--muted); font-size:0.9rem; margin:0 0 8px 0}
 .price{font-weight:600; margin:0 0 8px 0}
@@ -51,7 +52,41 @@ body{font-family:Inter,ui-sans-serif,system-ui, -apple-system, 'Segoe UI', Robot
 .plain{list-style:none; padding:0}
 .plain li{margin:0 0 12px 0}
 .pagination{display:flex; gap:12px; align-items:center; margin-top:16px}
-.site-footer{margin-top:32px; color:var(--muted); text-align:center}
+.fleet-banner{margin:18px 0}
+.fleet-hero{position:relative; border-radius:14px; overflow:hidden; min-height:280px; margin-bottom:20px; background:#0f172a}
+.fleet-hero img{width:100%; height:320px; object-fit:cover; display:block}
+.fleet-hero-copy{position:absolute; inset:auto 0 0 0; padding:24px; background:linear-gradient(transparent, rgba(8,15,30,.88)); color:white}
+.fleet-hero-copy h2{margin:4px 0 8px; font-size:1.8rem}
+.fleet-hero-copy p{margin:0 0 14px; max-width:36rem}
+.eyebrow{margin:0; font-size:.75rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#0e7490}
+.fleet-hero .eyebrow{color:#7dd3fc}
+.fleet-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.fleet-card{padding:0; overflow:hidden}
+.fleet-card img.fleet-photo{width:100%; height:190px; object-fit:cover; display:block; border-radius:0}
+.fleet-body{padding:16px}
+.fleet-body h3{margin:4px 0 8px}
+.chips{display:flex; flex-wrap:wrap; gap:6px; list-style:none; padding:0; margin:12px 0}
+.chips li{background:#f1f5f9; color:#334155; border-radius:999px; padding:4px 8px; font-size:.78rem}
+.fleet-models{color:#64748b; font-size:.85rem}
+.fleet-facts{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0}
+.fleet-facts span{display:block; color:#64748b; font-size:.75rem}
+.fleet-facts strong{font-size:.95rem}
+.quote-picks{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0}
+.quote-pick{display:flex; flex-direction:column; gap:2px; text-decoration:none; color:inherit; border:1px solid #e2e8f0; border-radius:10px; padding:8px; background:#f8fafc}
+.quote-pick:hover{border-color:#1f6feb}
+.quote-pick span{font-size:.75rem; color:#64748b}
+.quote-panel{display:grid; grid-template-columns:1fr 1.1fr; gap:24px; align-items:start}
+.fleet-form{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.fleet-form label{display:flex; flex-direction:column; gap:6px; font-size:.85rem; font-weight:600}
+.fleet-form .span-2,.fleet-form button{grid-column:1 / -1}
+.fleet-form input,.fleet-form select,.fleet-form textarea{width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:8px; font:inherit}
+.field-error{color:#b91c1c; font-weight:500}
+@media (max-width:800px){
+  .fleet-grid,.quote-panel,.quote-picks,.fleet-form{grid-template-columns:1fr}
+  .fleet-form .span-2,.fleet-form button{grid-column:auto}
+}
+.messages{list-style:none; padding:0}
+.messages li{background:#ecfdf5; color:#065f46; padding:10px 12px; border-radius:8px; margin-bottom:12px}
 @media (max-width:800px){
   .detail-grid,.desk-grid{grid-template-columns:1fr}
   .site-header{flex-direction:column; align-items:flex-start; gap:8px}
@@ -60,6 +95,5 @@ body{font-family:Inter,ui-sans-serif,system-ui, -apple-system, 'Segoe UI', Robot
 .hero-inner h2{margin:0 0 8px 0}
 .cta{background:#111827;color:white;padding:8px 12px;border-radius:6px;text-decoration:none}
 .detail-grid{display:grid;grid-template-columns:320px 1fr;gap:16px}
-.detail-image{width:100%;border-radius:8px}
+.detail-image{width:100%; height:280px; object-fit:cover; border-radius:8px}
 .placeholder{width:100%;height:220px;background:#e5e7eb;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#6b7280}
-.card img{height:160px;object-fit:cover}

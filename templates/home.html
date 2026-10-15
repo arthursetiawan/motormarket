@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% load price_tags %}
+{% load thumb_tags %}
 
 {% block title %}MotorMarket — Indonesian motorcycle market{% endblock %}
 
@@ -34,6 +35,8 @@
   <div class="grid">
     {% for deal in deals %}
     <article class="card">
+      {% listing_photo deal.motorcycle as photo %}
+      <img src="{{ photo }}" alt="{{ deal.motorcycle.title }}">
       <span class="badge badge-{{ deal.deal_label }}">{{ deal.deal_label|deal_name }}</span>
       <h4><a href="{% url 'motorcycle_detail' deal.motorcycle.pk %}">{{ deal.motorcycle.title }}</a></h4>
       <p class="meta">{{ deal.motorcycle.city }} · {{ deal.motorcycle.year }}</p>
@@ -46,11 +49,19 @@
   </div>
 </section>
 
+<section class="card fleet-banner">
+  <h3>Fleets for operators</h3>
+  <p>Buy or lease scooters in bulk for delivery, ride-hailing, tourism, and field teams. Quotes use the same fair-value model as the retail book.</p>
+  <a class="btn" href="{% url 'fleets' %}">See fleet programs</a>
+</section>
+
 <section>
   <h3>Fresh listings</h3>
   <div class="grid">
     {% for m in featured %}
     <article class="card">
+      {% listing_photo m as photo %}
+      <img src="{{ photo }}" alt="{{ m.title }}">
       {% if m.prediction %}<span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>{% endif %}
       <h4><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h4>
       <p class="meta">{{ m.make }} {{ m.model_name }} · {{ m.city }}</p>

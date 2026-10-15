@@ -17,6 +17,7 @@
       <nav>
         <a href="{% url 'index' %}">Listings</a>
         <a href="{% url 'insights' %}">Insights</a>
+        <a href="{% url 'fleets' %}">Fleets</a>
         {% if user.is_authenticated %}
           <a href="{% url 'profile' %}">Profile</a>
           <a href="{% url 'create_listing' %}">Create</a>

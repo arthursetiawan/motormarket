@@ -12,8 +12,9 @@ from ml.paths import IMPORTANCE_PATH, METRICS_PATH
 from ml.recommend import similar_listings
 from market.models import Bid, Motorcycle
 from market.services.desk import listing_desk, market_board
+from market.services.fleets import PROGRAMS, fleet_programs
 from market.services.pricing import listings_frame, score_listing
-from .forms import MotorcycleForm
+from .forms import FleetInquiryForm, MotorcycleForm
 
 
 def index(request):
@@ -158,6 +159,30 @@ def create_listing(request):
 def profile(request):
     listings = Motorcycle.objects.filter(seller=request.user).select_related("prediction")
     return render(request, "account/profile.html", {"profile_user": request.user, "listings": listings})
+
+
+def fleets(request):
+    if request.method == "POST":
+        form = FleetInquiryForm(request.POST)
+        if form.is_valid():
+            inquiry = form.save()
+            messages.success(
+                request,
+                f"Request saved for {inquiry.company_name}. A {inquiry.fleet_size}-bike {inquiry.get_use_case_display().lower()} fleet in {inquiry.city}.",
+            )
+            return redirect("fleets")
+    else:
+        initial = {}
+        program = request.GET.get("program")
+        if program in {row["slug"] for row in PROGRAMS}:
+            initial["use_case"] = program
+        if request.GET.get("intent") in ("buy", "rent"):
+            initial["intent"] = request.GET["intent"]
+        size = request.GET.get("size")
+        if size and size.isdigit() and 5 <= int(size) <= 500:
+            initial["fleet_size"] = int(size)
+        form = FleetInquiryForm(initial=initial)
+    return render(request, "market/fleets.html", {"programs": fleet_programs(), "form": form})
 
 
 def insights(request):
