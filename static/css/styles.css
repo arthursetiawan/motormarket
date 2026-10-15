@@ -9,16 +9,19 @@
   --blue-600: #1a6fd4;
   --blue-500: #2b7de9;
   --blue-400: #5b9cf0;
-  --blue-100: #e8f1fc;
-  --blue-50: #f2f7fd;
+  --blue-200: #b7d4f7;
+  --blue-100: #d6e7fb;
+  --blue-50: #e6f0fb;
 
   --ink: #0c1a2e;
-  --ink-soft: #3d4f66;
-  --muted: #6b7c91;
-  --line: #d5e0ee;
-  --surface: #ffffff;
-  --bg: #eef3f9;
-  --bg-deep: #e2ebf5;
+  --ink-soft: #2f4a6b;
+  --muted: #5a7190;
+  --line: #b9d0ea;
+  --surface: #f5f9ff;
+  --surface-raised: #ffffff;
+  --bg: #cfe0f5;
+  --bg-mid: #b6d0ee;
+  --bg-deep: #9bbce4;
 
   --accent: var(--blue-600);
   --accent-hover: var(--blue-700);
@@ -27,8 +30,8 @@
 
   --radius: 6px;
   --radius-lg: 10px;
-  --shadow: 0 1px 2px rgba(6, 20, 40, 0.06), 0 8px 24px rgba(6, 20, 40, 0.06);
-  --shadow-sm: 0 1px 2px rgba(6, 20, 40, 0.05);
+  --shadow: 0 1px 2px rgba(6, 20, 40, 0.08), 0 10px 28px rgba(21, 87, 160, 0.12);
+  --shadow-sm: 0 1px 2px rgba(10, 39, 68, 0.08);
   --max: 1120px;
   --header-h: 64px;
 
@@ -44,6 +47,7 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--blue-800);
 }
 
 body {
@@ -52,10 +56,12 @@ body {
   font-size: 16px;
   line-height: 1.55;
   color: var(--ink);
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(43, 125, 233, 0.12), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(14, 58, 102, 0.08), transparent 50%),
-    linear-gradient(180deg, var(--blue-50) 0%, var(--bg) 40%, var(--bg-deep) 100%);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 900px 520px at 12% -8%, rgba(91, 156, 240, 0.55), transparent 58%),
+    radial-gradient(ellipse 800px 480px at 92% 8%, rgba(26, 111, 212, 0.35), transparent 55%),
+    radial-gradient(ellipse 700px 420px at 50% 100%, rgba(14, 58, 102, 0.22), transparent 60%),
+    linear-gradient(180deg, #a8c8ec 0%, var(--bg) 28%, var(--bg-mid) 68%, var(--bg-deep) 100%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -395,7 +401,7 @@ h1, h2, h3, h4 {
 }
 
 .card {
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -590,7 +596,7 @@ h1, h2, h3, h4 {
 /* —— Filters —— */
 .filters {
   margin-bottom: 24px;
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
@@ -626,7 +632,7 @@ form textarea {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--surface-raised);
   color: var(--ink);
   width: 100%;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -706,7 +712,7 @@ form textarea:focus {
 }
 
 .media {
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -731,7 +737,7 @@ form textarea:focus {
 }
 
 .info {
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 22px 24px;
@@ -802,7 +808,7 @@ form textarea:focus {
 /* —— Forms (create / profile) —— */
 .form-panel {
   max-width: 560px;
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -828,7 +834,7 @@ form textarea:focus {
 }
 
 .profile-panel {
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 24px;
