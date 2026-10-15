@@ -12,6 +12,12 @@ DEAL_NAMES = {
     "overpriced": "Overpriced",
 }
 
+TRUST_NAMES = {
+    "high_trust": "High trust",
+    "review": "Review",
+    "caution": "Caution",
+}
+
 
 @register.filter
 def currency_idr(value):
@@ -25,6 +31,19 @@ def currency_idr(value):
 @register.filter
 def deal_name(value):
     return DEAL_NAMES.get(value, value or "")
+
+
+@register.filter
+def trust_name(value):
+    return TRUST_NAMES.get(value, value or "")
+
+
+@register.filter
+def abs_num(value):
+    try:
+        return abs(value)
+    except Exception:
+        return value
 
 
 @register.simple_tag

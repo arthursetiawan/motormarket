@@ -8,7 +8,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from market.models import Bid, Motorcycle
+from market.services.fleet_intel import market_coverage, recommend_pack
 from market.services.pricing import listing_to_record
+from market.services.trust import listing_trust
 from ml.catalog import CATALOG
 from ml.paths import METRICS_PATH
 from ml.score import ModelNotTrainedError, deal_label, deal_score, predict_prices
@@ -49,6 +51,12 @@ class MotorcycleViewSet(viewsets.ModelViewSet):
                 "deal_label": deal_label(score),
             }
         )
+
+    @action(detail=True, methods=["get"])
+    def trust(self, request, pk=None):
+        bike = self.get_object()
+        report = listing_trust(bike)
+        return Response({"motorcycle_id": bike.pk, **report.to_dict()})
 
 
 class BidViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -101,3 +109,33 @@ class ModelMetricsView(APIView):
         if not METRICS_PATH.exists():
             return Response({"detail": "no metrics yet"}, status=status.HTTP_404_NOT_FOUND)
         return Response(json.loads(METRICS_PATH.read_text(encoding="utf-8")))
+
+
+class FleetPackView(APIView):
+    """Recommend a buy/rent pack for a fleet program from the live book."""
+
+    def get(self, request):
+        program = request.query_params.get("program", "delivery")
+        size = request.query_params.get("size", "10")
+        city = request.query_params.get("city") or None
+        try:
+            size_i = int(size)
+        except (TypeError, ValueError):
+            return Response({"detail": "size must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+        pack = recommend_pack(program, size=size_i, preferred_city=city)
+        if pack is None:
+            return Response({"detail": "unknown program"}, status=status.HTTP_404_NOT_FOUND)
+        # JSON-safe: drop nested program image path noise already present
+        payload = dict(pack)
+        payload["program"] = {
+            "slug": pack["program"]["slug"],
+            "name": pack["program"]["name"],
+            "models": pack["program"]["models"],
+            "cities": pack["program"]["cities"],
+        }
+        return Response(payload)
+
+
+class FleetCoverageView(APIView):
+    def get(self, request):
+        return Response(market_coverage())

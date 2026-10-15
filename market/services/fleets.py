@@ -1,4 +1,8 @@
-"""Fleet programs for companies buying or leasing Indonesian motorcycles."""
+"""Fleet programs for companies buying or leasing Indonesian motorcycles.
+
+Card summaries live here; pack selection and city demand live in
+``market.services.fleet_intel``.
+"""
 
 from __future__ import annotations
 

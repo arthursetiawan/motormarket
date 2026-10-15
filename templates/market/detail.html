@@ -18,6 +18,9 @@
     {% if prediction %}
     <span class="badge badge-{{ prediction.deal_label }}">{{ prediction.deal_label|deal_name }}</span>
     {% endif %}
+    {% if trust %}
+    <span class="badge trust-{{ trust.label }}">{{ trust.label|trust_name }} · {{ trust.score }}</span>
+    {% endif %}
     <p class="price">Ask {{ motorcycle.start_price|currency_idr }}</p>
     {% if prediction %}
     <p class="meta">Fair value {{ prediction.predicted_price|currency_idr }}</p>
@@ -51,6 +54,36 @@
     {% endif %}
   </div>
 </div>
+
+{% if trust %}
+<section class="card desk trust-panel">
+  <h3>Listing trust</h3>
+  <p>{{ trust_copy }} Field completeness {{ trust.completeness }}.</p>
+  <div class="stat-row">
+    <article>
+      <p class="meta">Trust score</p>
+      <p class="stat-value">{{ trust.score }}</p>
+    </article>
+    <article>
+      <p class="meta">Label</p>
+      <p class="stat-value">{{ trust.label|trust_name }}</p>
+    </article>
+    <article>
+      <p class="meta">Flags</p>
+      <p class="stat-value">{{ trust.flags|length }}</p>
+    </article>
+  </div>
+  {% if trust.flags %}
+  <ul class="drivers">
+    {% for flag in trust.flags %}
+    <li><span class="flag-{{ flag.severity }}">{{ flag.severity }}</span> {{ flag.message }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No anomaly flags on this listing.</p>
+  {% endif %}
+</section>
+{% endif %}
 
 <section class="card desk">
   <h3>Why this price</h3>
