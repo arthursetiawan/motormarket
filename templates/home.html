@@ -1,57 +1,64 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MotorMarket — Buy & Bid Motorcycles (Indonesia)</title>
-  {% load static %}
-  {% load humanize %}
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
-  <div class="container">
-    <header class="site-header">
-      <h1>MotorMarket</h1>
-      <p class="tagline">Online bidding platform for motorcycles</p>
-      <nav>
-        {% if user.is_authenticated %}
-          <a href="{% url 'profile' %}">My Profile</a>
-          <a href="{% url 'create_listing' %}">Create</a>
-          <a href="{% url 'account_logout' %}">Logout</a>
-        {% else %}
-          <a href="{% url 'account_login' %}">Login</a>
-          <a href="{% url 'account_signup' %}">Sign up</a>
-        {% endif %}
-      </nav>
-    </header>
+{% extends "base.html" %}
+{% load humanize %}
+{% load price_tags %}
 
-    <section class="hero">
-      <div class="hero-inner">
-        <h2>Find your next motorcycle</h2>
-        <p class="muted">Trusted listings, transparent bidding, built for Indonesian riders.</p>
-        <a class="btn" href="{% url 'index' %}">Browse listings</a>
-      </div>
-    </section>
+{% block title %}MotorMarket — Indonesian motorcycle market{% endblock %}
 
-    <section>
-      <h3>Featured listings</h3>
-      <div class="grid">
-        {% for m in featured %}
-        <article class="card">
-          <h4><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h4>
-          <p class="meta">{{ m.make }} • {{ m.year }}</p>
-          <p class="price">{{ m.start_price|intcomma }}</p>
-          <p class="desc">{{ m.description|truncatewords:20 }}</p>
-        </article>
-        {% empty %}
-        <p>No featured listings available.</p>
-        {% endfor %}
-      </div>
-    </section>
-
-    <footer class="site-footer">
-      <p>&copy; MotorMarket</p>
-    </footer>
+{% block content %}
+<section class="hero">
+  <div class="hero-inner">
+    <h2>Used bikes, priced against the Indonesian book</h2>
+    <p>Fair value in rupiah, city comps, and live bids for scooters and motorcycles.</p>
+    <a class="btn" href="{% url 'index' %}">Browse the book</a>
+    <a class="btn btn-ghost" href="{% url 'insights' %}">Open the market desk</a>
   </div>
-</body>
-</html>
+</section>
+
+<section class="stat-row">
+  <article class="card stat">
+    <p class="meta">Listings on the book</p>
+    <p class="stat-value">{{ stats.n|default:0 }}</p>
+  </article>
+  <article class="card stat">
+    <p class="meta">Average ask</p>
+    <p class="stat-value">{% if stats.avg_ask %}{{ stats.avg_ask|currency_idr }}{% else %}—{% endif %}</p>
+  </article>
+  <article class="card stat">
+    <p class="meta">Cities covered</p>
+    <p class="stat-value">{{ city_count }}</p>
+  </article>
+</section>
+
+<section>
+  <h3>Best asks versus fair value</h3>
+  <div class="grid">
+    {% for deal in deals %}
+    <article class="card">
+      <span class="badge badge-{{ deal.deal_label }}">{{ deal.deal_label|deal_name }}</span>
+      <h4><a href="{% url 'motorcycle_detail' deal.motorcycle.pk %}">{{ deal.motorcycle.title }}</a></h4>
+      <p class="meta">{{ deal.motorcycle.city }} · {{ deal.motorcycle.year }}</p>
+      <p class="price">Ask {{ deal.motorcycle.start_price|currency_idr }}</p>
+      <p class="meta">Fair value {{ deal.predicted_price|currency_idr }} · {{ deal.deal_score|floatformat:0 }}% under model</p>
+    </article>
+    {% empty %}
+    <p class="muted">Score listings to rank deals. The desk fills in once the price model has run.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <h3>Fresh listings</h3>
+  <div class="grid">
+    {% for m in featured %}
+    <article class="card">
+      {% if m.prediction %}<span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>{% endif %}
+      <h4><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h4>
+      <p class="meta">{{ m.make }} {{ m.model_name }} · {{ m.city }}</p>
+      <p class="price">{{ m.start_price|currency_idr }}</p>
+    </article>
+    {% empty %}
+    <p>No listings yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

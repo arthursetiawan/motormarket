@@ -5,12 +5,13 @@ from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, Q
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from ml.paths import IMPORTANCE_PATH, METRICS_PATH
 from ml.recommend import similar_listings
-from market.models import Bid, ListingPrediction, Motorcycle
+from market.models import Bid, Motorcycle
+from market.services.desk import listing_desk, market_board
 from market.services.pricing import listings_frame, score_listing
 from .forms import MotorcycleForm
 
@@ -49,7 +50,12 @@ def index(request):
 
     paginator = Paginator(qs.select_related("prediction"), 12)
     motorcycles = paginator.get_page(request.GET.get("page"))
-    return render(request, "market/index.html", {"motorcycles": motorcycles})
+    board = market_board()
+    return render(
+        request,
+        "market/index.html",
+        {"motorcycles": motorcycles, "makes": board["makes"], "cities": board["cities"]},
+    )
 
 
 def motorcycle_detail(request, pk):
@@ -60,11 +66,10 @@ def motorcycle_detail(request, pk):
         prediction = score_listing(motorcycle)
 
     similar = []
-    frame = listings_frame(Motorcycle.objects.exclude(pk=motorcycle.pk)[:80])
-    if not frame.empty:
-        all_frame = listings_frame(Motorcycle.objects.all()[:120])
+    all_frame = listings_frame(Motorcycle.objects.all()[:120])
+    if not all_frame.empty and str(motorcycle.pk) in set(all_frame["listing_id"].astype(str)):
         try:
-            idx = list(all_frame["listing_id"]).index(str(motorcycle.pk))
+            idx = list(all_frame["listing_id"].astype(str)).index(str(motorcycle.pk))
             neighbors = similar_listings(all_frame, idx, k=4)
             ids = [int(x) for x in neighbors["listing_id"].tolist()]
             similar = list(Motorcycle.objects.filter(pk__in=ids).select_related("prediction"))
@@ -79,6 +84,7 @@ def motorcycle_detail(request, pk):
             "highest_bid": highest_bid,
             "prediction": prediction,
             "similar": similar,
+            "desk": listing_desk(motorcycle),
         },
     )
 
@@ -117,17 +123,18 @@ def place_bid(request, pk):
 
 
 def home(request):
+    board = market_board()
     featured = Motorcycle.objects.select_related("prediction").order_by("-created_at")[:3]
-    deals = (
-        ListingPrediction.objects.filter(deal_label__in=["great_deal", "good_deal"])
-        .select_related("motorcycle")
-        .order_by("-deal_score")[:4]
-    )
-    stats = Motorcycle.objects.aggregate(n=Count("id"), avg_ask=Avg("start_price"))
     return render(
         request,
         "home.html",
-        {"featured": featured, "deals": deals, "stats": stats},
+        {
+            "featured": featured,
+            "deals": board["top_deals"][:4],
+            "stats": board["totals"],
+            "cities": board["city_stats"][:4],
+            "city_count": board["city_count"],
+        },
     )
 
 
@@ -160,31 +167,17 @@ def insights(request):
         metrics = json.loads(METRICS_PATH.read_text(encoding="utf-8"))
     if IMPORTANCE_PATH.exists():
         importance = json.loads(IMPORTANCE_PATH.read_text(encoding="utf-8"))[:8]
+    peak = max((row["importance"] for row in importance), default=0) or 1
+    for row in importance:
+        row["share"] = round(100 * max(row["importance"], 0) / peak)
 
-    qs = ListingPrediction.objects.select_related("motorcycle")
-    label_counts = list(qs.values("deal_label").annotate(n=Count("id")).order_by("-n"))
-    city_stats = list(
-        Motorcycle.objects.values("city")
-        .annotate(n=Count("id"), avg_ask=Avg("start_price"))
-        .order_by("-n")[:8]
-    )
-    make_stats = list(
-        Motorcycle.objects.values("make")
-        .annotate(n=Count("id"), avg_ask=Avg("start_price"))
-        .order_by("-n")[:8]
-    )
-    top_deals = qs.order_by("-deal_score")[:8]
-    rich = qs.order_by("deal_score")[:8]
+    board = market_board()
     return render(
         request,
         "market/insights.html",
         {
             "metrics": metrics,
             "importance": importance,
-            "label_counts": label_counts,
-            "city_stats": city_stats,
-            "make_stats": make_stats,
-            "top_deals": top_deals,
-            "rich": rich,
+            **board,
         },
     )

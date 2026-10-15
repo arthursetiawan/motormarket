@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load price_tags %}
+
+{% block title %}Market desk — MotorMarket{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-inner">
+    <h2>Indonesian motorcycle market desk</h2>
+    <p>Live asks across cities and models, set next to the sold-price model's fair value. Prices are rupiah.</p>
+  </div>
+</section>
+
+<section class="stat-row">
+  <article class="card stat">
+    <p class="meta">Listings</p>
+    <p class="stat-value">{{ totals.n|default:0 }}</p>
+  </article>
+  <article class="card stat">
+    <p class="meta">Average ask</p>
+    <p class="stat-value">{% if totals.avg_ask %}{{ totals.avg_ask|currency_idr }}{% else %}—{% endif %}</p>
+  </article>
+  <article class="card stat">
+    <p class="meta">Average fair value</p>
+    <p class="stat-value">{% if avg_fair %}{{ avg_fair|currency_idr }}{% else %}—{% endif %}</p>
+  </article>
+  <article class="card stat">
+    <p class="meta">Model MAPE</p>
+    <p class="stat-value">{% if metrics.mape_pct %}{{ metrics.mape_pct }}%{% else %}—{% endif %}</p>
+  </article>
+</section>
+
+{% if metrics.algorithm %}
+<p class="meta">{{ metrics.algorithm }} · {{ metrics.split }} · test MAE {% if metrics.mae_idr %}{{ metrics.mae_idr|currency_idr }}{% endif %} · R² {{ metrics.r2 }}</p>
+{% else %}
+<p class="muted">Train the price model to publish error and feature importance. City and model comps still come from the live book.</p>
+{% endif %}
+
+<section class="desk-grid">
+  <article class="card">
+    <h3>Deal mix</h3>
+    {% for row in label_counts %}
+    <div class="bar-row">
+      <span>{{ row.deal_label|deal_name }}</span>
+      <span class="bar"><span class="bar-fill badge-bg-{{ row.deal_label }}" style="width: {{ row.share }}%"></span></span>
+      <span>{{ row.n }}</span>
+    </div>
+    {% empty %}
+    <p class="muted">No scored listings yet.</p>
+    {% endfor %}
+  </article>
+  <article class="card">
+    <h3>What moves price</h3>
+    {% for row in importance %}
+    <div class="bar-row">
+      <span>{{ row.feature }}</span>
+      <span class="bar"><span class="bar-fill" style="width: {{ row.share }}%"></span></span>
+    </div>
+    {% empty %}
+    <p class="muted">Feature importance appears after training.</p>
+    {% endfor %}
+  </article>
+</section>
+
+<section>
+  <h3>City book</h3>
+  <table class="market">
+    <thead>
+      <tr><th>City</th><th>Listings</th><th>Average ask</th><th>Average fair value</th></tr>
+    </thead>
+    <tbody>
+      {% for row in city_stats %}
+      <tr>
+        <td><a href="{% url 'index' %}?city={{ row.city|urlencode }}">{{ row.city }}</a></td>
+        <td>{{ row.n }}</td>
+        <td>{{ row.avg_ask|currency_idr }}</td>
+        <td>{% if row.avg_fair %}{{ row.avg_fair|currency_idr }}{% else %}—{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">No listings yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h3>Model comps</h3>
+  <table class="market">
+    <thead>
+      <tr><th>Motorcycle</th><th>Listings</th><th>Average ask</th><th>Average fair value</th></tr>
+    </thead>
+    <tbody>
+      {% for row in model_stats %}
+      <tr>
+        <td><a href="{% url 'index' %}?q={{ row.model_name|urlencode }}">{{ row.make }} {{ row.model_name }}</a></td>
+        <td>{{ row.n }}</td>
+        <td>{{ row.avg_ask|currency_idr }}</td>
+        <td>{% if row.avg_fair %}{{ row.avg_fair|currency_idr }}{% else %}—{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">No model comps yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="desk-grid">
+  <article>
+    <h3>Strongest deals</h3>
+    <ul class="plain">
+      {% for deal in top_deals %}
+      <li>
+        <a href="{% url 'motorcycle_detail' deal.motorcycle.pk %}">{{ deal.motorcycle.title }}</a>
+        <span class="meta">{{ deal.motorcycle.city }} · ask {{ deal.motorcycle.start_price|currency_idr }} · fair {{ deal.predicted_price|currency_idr }}</span>
+      </li>
+      {% empty %}
+      <li class="muted">None yet.</li>
+      {% endfor %}
+    </ul>
+  </article>
+  <article>
+    <h3>Asks furthest above fair value</h3>
+    <ul class="plain">
+      {% for deal in rich %}
+      <li>
+        <a href="{% url 'motorcycle_detail' deal.motorcycle.pk %}">{{ deal.motorcycle.title }}</a>
+        <span class="meta">{{ deal.motorcycle.city }} · ask {{ deal.motorcycle.start_price|currency_idr }} · fair {{ deal.predicted_price|currency_idr }}</span>
+      </li>
+      {% empty %}
+      <li class="muted">None yet.</li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+{% endblock %}

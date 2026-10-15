@@ -14,3 +14,7 @@ sorl-thumbnail
 channels
 channels-redis
 daphne
+numpy
+pandas
+scikit-learn
+joblib

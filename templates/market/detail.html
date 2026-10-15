@@ -1,79 +1,132 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ motorcycle.title }}</title>
-    {% load static %}
-    {% load thumb_tags %}
-    {% load humanize %}
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
-    <div class="container">
-        <a href="/">Home</a>
-        <h1>{{ motorcycle.title }}</h1>
-        <div class="detail-grid">
-            <div class="media">
-                {% if motorcycle.image %}
-                <img src="{% thumb motorcycle.image '800x600' %}" alt="{{ motorcycle.title }}" class="detail-image">
-                {% else %}
-                <div class="placeholder">No image</div>
-                {% endif %}
-            </div>
-            <div class="info">
-                <p class="meta">{{ motorcycle.make }} • {{ motorcycle.year }} • Seller: {{ motorcycle.seller.username }}</p>
-                <p class="price">{{ motorcycle.start_price|intcomma }} </p>
-                <p>{{ motorcycle.description }}</p>
+{% extends "base.html" %}
+{% load thumb_tags %}
+{% load price_tags %}
 
-                <p>Highest bid: {% if highest_bid %}{{ highest_bid.amount }} by {{ highest_bid.bidder.username }}{% else %}No bids yet{% endif %}</p>
+{% block title %}{{ motorcycle.title }} — MotorMarket{% endblock %}
 
-                {% if user.is_authenticated %}
-                <form method="post" action="{% url 'place_bid' motorcycle.pk %}">
-                    {% csrf_token %}
-                    <input type="number" step="0.01" name="amount" placeholder="Your bid">
-                    <button type="submit" class="btn">Place bid</button>
-                </form>
+{% block content %}
+<p class="meta"><a href="{% url 'index' %}">Listings</a> · {{ motorcycle.city }}</p>
+<h2>{{ motorcycle.title }}</h2>
+<div class="detail-grid">
+  <div class="media">
+    {% if motorcycle.image %}
+    <img src="{% thumb motorcycle.image '800x600' %}" alt="{{ motorcycle.title }}" class="detail-image">
+    {% else %}
+    <div class="placeholder">No image</div>
+    {% endif %}
+  </div>
+  <div class="info">
+    <p class="meta">{{ motorcycle.make }} {{ motorcycle.model_name }} · {{ motorcycle.year }} · {{ motorcycle.engine_cc }}cc · {{ motorcycle.condition|title }} · {{ motorcycle.mileage_km }} km</p>
+    <p class="meta">Seller {{ motorcycle.seller.username }} · {{ motorcycle.owners_count }} owner{{ motorcycle.owners_count|pluralize }} · {{ motorcycle.transmission|title }}</p>
+    {% if prediction %}
+    <span class="badge badge-{{ prediction.deal_label }}">{{ prediction.deal_label|deal_name }}</span>
+    {% endif %}
+    <p class="price">Ask {{ motorcycle.start_price|currency_idr }}</p>
+    {% if prediction %}
+    <p class="meta">Fair value {{ prediction.predicted_price|currency_idr }}</p>
+    {% endif %}
+    <p>{{ motorcycle.description }}</p>
+    <p>Highest bid: {% if highest_bid %}{{ highest_bid.amount|currency_idr }} by {{ highest_bid.bidder.username }}{% else %}No bids yet{% endif %}</p>
 
-                <hr>
-                <div id="live-bids">
-                  <h4>Live bids</h4>
-                  <ul id="bids-list"></ul>
-                </div>
-                <script>
-                  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/auctions/');
-                  ws.onmessage = function(e) {
-                    const data = JSON.parse(e.data);
-                    if (data.type === 'new_bid') {
-                      const li = document.createElement('li');
-                      li.textContent = data.bidder + ' — Rp ' + data.amount;
-                      document.getElementById('bids-list').prepend(li);
-                    }
-                  };
-
-                  const container = document.getElementById('auction');
-                  const motorcycleId = container ? container.dataset.motorcycle : null;
-                  const bidderName = container ? container.dataset.user : null;
-                  // send local bids via WS when placing a bid (optimistic update)
-                  const bidForm = document.querySelector('form[action$="/bid/"]');
-                  if (bidForm) {
-                    bidForm.addEventListener('submit', e => {
-                      const amount = bidForm.querySelector('input[name="amount"]').value;
-                      if (motorcycleId && bidderName) {
-                        ws.send(JSON.stringify({type: 'new_bid', motorcycle: motorcycleId, amount: amount, bidder: bidderName}));
-                      }
-                    });
-                  }
-                </script>
-                {% else %}
-                <p><a href="{% url 'account_login' %}">Log in</a> to place a bid.</p>
-                {% endif %}
-
-                {% if user == motorcycle.seller %}
-                <p><a href="{% url 'admin:market_motorcycle_change' motorcycle.pk %}">Edit listing</a></p>
-                {% endif %}
-            </div>
-        </div>
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'place_bid' motorcycle.pk %}">
+      {% csrf_token %}
+      <input type="number" step="1000" name="amount" placeholder="Your bid in IDR">
+      <button type="submit" class="btn">Place bid</button>
+    </form>
+    <div id="live-bids">
+      <h4>Live bids</h4>
+      <ul id="bids-list"></ul>
     </div>
-</body>
-</html>
+    <script>
+      const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/auctions/');
+      ws.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'new_bid' && String(data.motorcycle) === '{{ motorcycle.pk }}') {
+          const li = document.createElement('li');
+          li.textContent = data.bidder + ' — Rp ' + data.amount;
+          document.getElementById('bids-list').prepend(li);
+        }
+      };
+    </script>
+    {% else %}
+    <p><a href="{% url 'account_login' %}">Log in</a> to place a bid.</p>
+    {% endif %}
+  </div>
+</div>
+
+<section class="card desk">
+  <h3>Why this price</h3>
+  {% if desk.prediction %}
+  <p>{{ desk.copy }}</p>
+  <div class="stat-row">
+    <article>
+      <p class="meta">Ask</p>
+      <p class="stat-value">{{ motorcycle.start_price|currency_idr }}</p>
+    </article>
+    <article>
+      <p class="meta">Model fair value</p>
+      <p class="stat-value">{{ desk.prediction.predicted_price|currency_idr }}</p>
+    </article>
+    <article>
+      <p class="meta">{% if desk.gap > 0 %}Under fair value{% elif desk.gap < 0 %}Over fair value{% else %}At fair value{% endif %}</p>
+      <p class="stat-value">{{ desk.abs_gap|currency_idr }}</p>
+    </article>
+  </div>
+  {% else %}
+  <p>This listing is not scored yet. Fair value appears after the price model runs.</p>
+  {% endif %}
+  {% if desk.drivers %}
+  <ul class="drivers">
+    {% for note in desk.drivers %}
+    <li>{{ note }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+<section>
+  <h3>Same model on the book</h3>
+  {% if desk.peer_stats.n %}
+  <p class="meta">{{ desk.peer_stats.n }} other {{ motorcycle.make }} {{ motorcycle.model_name }} listing{{ desk.peer_stats.n|pluralize }}. Average ask {{ desk.peer_stats.avg_ask|currency_idr }}{% if desk.peer_stats.avg_fair %} · average fair value {{ desk.peer_stats.avg_fair|currency_idr }}{% endif %}.</p>
+  <table class="market">
+    <thead>
+      <tr><th>Listing</th><th>City</th><th>Year</th><th>Km</th><th>Ask</th><th>Fair value</th></tr>
+    </thead>
+    <tbody>
+      {% for peer in desk.peers %}
+      <tr>
+        <td><a href="{% url 'motorcycle_detail' peer.pk %}">{{ peer.title }}</a></td>
+        <td>{{ peer.city }}</td>
+        <td>{{ peer.year }}</td>
+        <td>{{ peer.mileage_km }}</td>
+        <td>{{ peer.start_price|currency_idr }}</td>
+        <td>{% if peer.prediction %}{{ peer.prediction.predicted_price|currency_idr }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No other {{ motorcycle.model_name }} listings to compare.</p>
+  {% endif %}
+  {% if desk.city_stats.n %}
+  <p class="meta">{{ motorcycle.city }} book: {{ desk.city_stats.n }} listing{{ desk.city_stats.n|pluralize }}, average ask {{ desk.city_stats.avg_ask|currency_idr }}.</p>
+  {% endif %}
+</section>
+
+{% if similar %}
+<section>
+  <h3>Similar bikes</h3>
+  <div class="grid">
+    {% for m in similar %}
+    <article class="card">
+      {% if m.prediction %}<span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>{% endif %}
+      <h4><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h4>
+      <p class="meta">{{ m.city }} · {{ m.mileage_km }} km</p>
+      <p class="price">{{ m.start_price|currency_idr }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
