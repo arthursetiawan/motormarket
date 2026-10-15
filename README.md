@@ -1,137 +1,142 @@
-MotorMarket - Online bidding platform for motorcycles (Indonesia)
+# MotorMarket
 
-Overview
+Online bidding platform for used motorcycles (Indonesia). Django backend with server-rendered listings, realtime bids (Channels), REST API, and a tabular ML pipeline for sold-price estimates.
 
-This repository contains a starter Django project for MotorMarket (backend) and a React + Vite frontend scaffold under `frontend/`.
+**Portfolio highlights:** Django + Channels, image uploads/thumbnails, sklearn price intelligence, Docker Compose (Postgres + Redis), optional React scaffold under `frontend/`.
 
-This README is continuously updated with the steps required to set up, run, and test the application locally (both using a Python virtualenv and Docker Compose).
+## Architecture
 
-Prerequisites
+```text
+motormarket/          Django project (settings, ASGI, URLs)
+market/               Models, views, API, WebSocket consumers
+templates/ static/    Server UI
+ml/ data/ artifacts/  Train → score → model card
+frontend/             Optional React + Vite (not required to run the site)
+```
 
-- Python 3.11+ (or the version you prefer)
-- Node 18+ and npm (for frontend)
-- Docker & Docker Compose (optional — for running Postgres + Redis + web)
+| URL | Purpose |
+|-----|---------|
+| `/` | Home |
+| `/market/` | Listings index |
+| `/market/motorcycle/<id>/` | Detail + bidding |
+| `/market/insights/` | Market / pricing insights + fleet coverage |
+| `/market/fleets/` | B2B fleet programs, pack recommendations, inquiries |
+| `/api/` | DRF endpoints (pricing, trust, fleet packs) |
+| `/admin/` | Django admin |
+
+Agent and editor context: **`AGENTS.md`** (quick index), **`copilot-instructions.md`** (detailed conventions), **`docs/CURSOR.md`** (Cursor workflow).
+
+## Prerequisites
+
+- Python 3.11+
+- Node 18+ and npm (only if you work on `frontend/`)
+- Docker & Docker Compose (optional)
 - Git
 
-Local setup (recommended: virtual environment)
+## Local setup (virtualenv)
 
-1. Create and activate a virtual environment
+**Windows (PowerShell):**
 
-   bash (Git Bash on Windows):
-   ```bash
-   python -m venv .venv
-   source .venv/Scripts/activate
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+**Git Bash on Windows / macOS / Linux:** use `source .venv/Scripts/activate` or `source .venv/bin/activate`, and `cp .env.example .env`.
+
+Open http://127.0.0.1:8000/ (admin at `/admin/`).
+
+### Sample data & ML (optional)
+
+```bash
+python manage.py seed_market          # if you use seeded listings
+python manage.py train_price_model    # trains price_model.joblib
+python manage.py score_listings       # scores listings from the model
+```
+
+Model documentation: `artifacts/reports/MODEL_CARD.md`.
+
+**Data-science product surfaces**
+
+- Listing fair value + deal badges (price model)
+- Listing trust score on detail pages (`ml/trust.py`)
+- Fleet pack recommendations + city demand index (`market/services/fleet_intel.py`)
+- API: `GET /api/motorcycles/<id>/trust/`, `GET /api/fleets/pack/?program=delivery&size=25`, `GET /api/fleets/coverage/`
+
+## Environment variables
+
+Copy **`.env.example`** to **`.env`**. Never commit `.env`.
+
+Key variables: `SECRET_KEY`, `DEBUG`, `DATABASE_URL`, `REDIS_URL`, optional S3 (`USE_S3`, AWS_*). Docker Compose overrides `DATABASE_URL` / Redis for the web container.
+
+## Frontend (React + Vite)
+
+The SPA is optional; the main UX is Django templates.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Production build: `npm run build` → `frontend/dist`.
+
+## Docker Compose
+
+```bash
+docker compose up --build
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py createsuperuser
+```
+
+App: http://localhost:8000
+
+For WebSockets with Redis, ASGI via Daphne:
+
+```bash
+daphne -b 0.0.0.0 -p 8000 motormarket.asgi:application
+```
+
+## Testing
+
+```bash
+python manage.py check
+python manage.py test
+```
+
+With the dev server running: `curl -I http://127.0.0.1:8000/`
+
+## Cursor / AI setup
+
+1. Open this folder as the workspace root.
+2. Select interpreter: `.venv\Scripts\python.exe` (Cursor uses `.vscode/settings.json`).
+3. Install recommended extensions when prompted.
+4. Copy AI ignore file (keeps chat focused on source, not venv/data blobs):
+
+   ```powershell
+   copy .cursorignore.example .cursorignore
    ```
 
-2. Install Python dependencies
+5. Project rules live in **`.cursor/rules/`**:
+   - `motormarket-core.mdc` — always on (stack, secrets, definition of done)
+   - `django-backend.mdc` — `market/`, templates, static
+   - `ml-pipeline.mdc` — `ml/`, train/score, artifacts
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+Session habit: **Plan** one verifiable outcome → **Agent** implement → run `check` / `test` → update this README if behavior or setup changed. Details: **`docs/CURSOR.md`**.
 
-   Note: If you plan to use docker-compose, the web service will use the packages installed inside the container. For local development, install them into your venv.
+## Troubleshooting
 
-3. Environment variables
+**allauth `AccountMiddleware`:** ensure `motormarket/settings.py` includes `'allauth.account.middleware.AccountMiddleware'` after `AuthenticationMiddleware`.
 
-   Create a `.env` (or export variables) for local overrides. Example `.env` contents:
+**Unresolved Django imports in the editor:** point Cursor/VS Code at the project `.venv` and `pip install -r requirements.txt` into it.
 
-   ```env
-   SECRET_KEY=replace-me-with-a-secure-secret
-   DEBUG=1
-   DATABASE_URL=sqlite:///db.sqlite3
-   ```
+**Changed `SECRET_KEY`:** update `.env`, not committed defaults.
 
-   If running with Docker Compose, `DATABASE_URL` will be provided automatically for the container.
+## License
 
-4. Run migrations and create a superuser
-
-   ```bash
-   python manage.py migrate
-   python manage.py createsuperuser
-   ```
-
-5. Run development server
-
-   ```bash
-   python manage.py runserver
-   ```
-
-   Visit http://127.0.0.1:8000/ to view the site and /admin for Django admin.
-
-Frontend (React + Vite)
-
-1. Initialize the frontend (one-time)
-
-   ```bash
-   cd frontend
-   npm create vite@latest . --template react
-   npm install
-   ```
-
-2. Run the frontend dev server (separate terminal)
-
-   ```bash
-   npm run dev
-   ```
-
-3. Build for production
-
-   ```bash
-   npm run build
-   ```
-   Build artifacts will be in `frontend/dist` (you can serve them with any web server or configure Django to serve static/compiled frontend).
-
-Docker Compose (Postgres + Redis + web)
-
-1. Build and run all services
-
-   ```bash
-   docker compose up --build
-   ```
-
-2. Inside the web container you still need to run migrations and create a superuser (or do it from host if using volume mounts):
-
-   ```bash
-   docker compose exec web python manage.py migrate
-   docker compose exec web python manage.py createsuperuser
-   ```
-
-3. The web app will be exposed on port 8000 (http://localhost:8000)
-
-Testing / Smoke checks
-
-After installing requirements and applying migrations, run these checks locally:
-
-- Django system checks
-  ```bash
-  python manage.py check
-  ```
-
-- Run the test suite
-  ```bash
-  python manage.py test
-  ```
-
-- Quick smoke test (after server is running)
-  ```bash
-  curl -I http://127.0.0.1:8000/
-  ```
-
-Troubleshooting
-
-- allauth.middleware.AccountMiddleware error during migrate:
-  If you see: "allauth.account.middleware.AccountMiddleware must be added to settings.MIDDLEWARE", make sure `motormarket/settings.py` includes the middleware line:
-
-  ```python
-  'allauth.account.middleware.AccountMiddleware',
-  ```
-
-  It should appear after `django.contrib.auth.middleware.AuthenticationMiddleware` in `MIDDLEWARE`.
-
-- Imports unresolved in your editor (like `Import "django..." could not be resolved`): Ensure your editor is using the project virtual environment interpreter. Install dependencies into the venv so language servers can resolve imports.
-
-- If you changed `SECRET_KEY`, update it in your environment or `.env`.
-
-Continuous README updates
-
-I will keep this README up to date as I add features (API endpoints, frontend pages, Docker improvements, Channels for realtime bids, CI). If you want me to run the setup and tests in this workspace now, confirm and I will execute the required commands and report results.
+Add a `LICENSE` file when you publish the repo publicly (MIT is a common choice for portfolio projects).

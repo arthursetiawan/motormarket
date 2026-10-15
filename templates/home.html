@@ -1,11 +1,19 @@
 {% extends "base.html" %}
+{% load static %}
 {% load humanize %}
+{% load price_tags %}
 {% load thumb_tags %}
 
 {% block title %}MotorMarket — Buy & Bid Motorcycles{% endblock %}
 
 {% block full_bleed %}
 <section class="hero-bleed" aria-label="MotorMarket">
+  <img
+    class="hero-media"
+    src="{% static 'img/listings/kawasaki-ninja-250.jpg' %}"
+    alt="Motorcycle on auction"
+  >
+  <div class="hero-scrim" aria-hidden="true"></div>
   <div class="hero-content">
     <p class="hero-brand">Motor<span>Market</span></p>
     <h1 class="hero-headline">Bid on motorcycles you actually want</h1>
@@ -35,18 +43,19 @@
     <div class="grid">
       {% for m in featured %}
       <article class="card">
-        <div class="card-media">
-          {% if m.image %}
-            <img src="{% thumb m.image '600x400' %}" alt="{{ m.title }}">
-          {% else %}
-            <div class="placeholder">No photo</div>
-          {% endif %}
-        </div>
+        {% listing_photo m as photo %}
+        <a class="card-media" href="{% url 'motorcycle_detail' m.pk %}">
+          <img src="{{ photo }}" alt="{{ m.title }}">
+        </a>
         <div class="card-body">
           <h3 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h3>
-          <p class="meta">{% if m.make %}{{ m.make }}{% else %}Motorcycle{% endif %}{% if m.year %} · {{ m.year }}{% endif %}</p>
-          <p class="price"><span class="price-label">Starting bid</span>Rp {{ m.start_price|intcomma }}</p>
-          <p class="desc">{{ m.description|truncatewords:18 }}</p>
+          <p class="meta meta-dense">
+            {% if m.year %}{{ m.year }}{% endif %}
+            {% if m.make %} · {{ m.make }}{% if m.model_name %} {{ m.model_name }}{% endif %}{% endif %}
+            {% if m.mileage_km %} · {{ m.mileage_km|intcomma }} km{% endif %}
+            {% if m.city %} · {{ m.city }}{% endif %}
+          </p>
+          <p class="price"><span class="price-label">Starting bid</span>{{ m.start_price|currency_idr }}</p>
           <a class="btn" href="{% url 'motorcycle_detail' m.pk %}">View &amp; bid</a>
         </div>
       </article>

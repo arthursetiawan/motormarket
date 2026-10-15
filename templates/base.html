@@ -18,6 +18,8 @@
         </a>
         <nav class="site-nav" aria-label="Main">
           <a href="{% url 'index' %}">Auctions</a>
+          <a href="{% url 'insights' %}">Insights</a>
+          <a href="{% url 'fleets' %}">Fleets</a>
           {% if user.is_authenticated %}
             <a href="{% url 'profile' %}">Profile</a>
             <a href="{% url 'create_listing' %}">Sell</a>
@@ -29,6 +31,16 @@
         </nav>
       </div>
     </header>
+
+    {% if messages %}
+    <div class="container">
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
 
     {% block full_bleed %}{% endblock %}
 

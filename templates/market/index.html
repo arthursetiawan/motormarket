@@ -1,24 +1,43 @@
 {% extends "base.html" %}
 {% load thumb_tags %}
 {% load humanize %}
+{% load price_tags %}
 
 {% block title %}Auctions — MotorMarket{% endblock %}
 
 {% block content %}
 <header class="page-header">
   <h1>Live auctions</h1>
-  <p class="tagline">Browse motorcycles for sale — filter by make, year, or keyword</p>
+  <p class="tagline">Browse motorcycles for sale — filter by make, city, year, or keyword</p>
 </header>
 
 <section class="filters" aria-label="Filter listings">
   <form method="get" class="filters-form">
-    <input type="search" name="q" placeholder="Search title or description" value="{{ request.GET.q }}">
+    <input type="search" name="q" placeholder="Search make, model, city" value="{{ request.GET.q }}">
+    {% if makes %}
+    <select name="make">
+      <option value="">All makes</option>
+      {% for make in makes %}
+      <option value="{{ make }}" {% if request.GET.make == make %}selected{% endif %}>{{ make }}</option>
+      {% endfor %}
+    </select>
+    {% else %}
     <input type="text" name="make" placeholder="Make" value="{{ request.GET.make }}">
+    {% endif %}
+    {% if cities %}
+    <select name="city">
+      <option value="">All cities</option>
+      {% for city in cities %}
+      <option value="{{ city }}" {% if request.GET.city == city %}selected{% endif %}>{{ city }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
     <input type="number" name="year" placeholder="Year" value="{{ request.GET.year }}">
     <select name="sort">
-      <option value="">Sort by</option>
+      <option value="">Newest</option>
       <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
       <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
+      <option value="deal" {% if request.GET.sort == 'deal' %}selected{% endif %}>Best deal</option>
     </select>
     <button class="btn" type="submit">Filter</button>
   </form>
@@ -28,34 +47,38 @@
   <section class="grid">
     {% for m in motorcycles %}
     <article class="card">
-      <div class="card-media">
-        {% if m.image %}
-          <img src="{% thumb m.image '600x400' %}" alt="{{ m.title }}">
-        {% else %}
-          <div class="placeholder">No photo</div>
-        {% endif %}
-      </div>
+      {% listing_photo m as photo %}
+      <a class="card-media" href="{% url 'motorcycle_detail' m.pk %}">
+        <img src="{{ photo }}" alt="{{ m.title }}">
+      </a>
       <div class="card-body">
+        {% if m.prediction %}
+        <span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>
+        {% endif %}
         <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>
-        <p class="meta">{% if m.make %}{{ m.make }}{% else %}Motorcycle{% endif %}{% if m.year %} · {{ m.year }}{% endif %}</p>
-        <p class="price"><span class="price-label">Starting bid</span>Rp {{ m.start_price|intcomma }}</p>
-        <p class="desc">{{ m.description|truncatewords:22 }}</p>
+        <p class="meta meta-dense">
+          {% if m.year %}{{ m.year }}{% endif %}
+          {% if m.make %} · {{ m.make }}{% if m.model_name %} {{ m.model_name }}{% endif %}{% endif %}
+          {% if m.mileage_km %} · {{ m.mileage_km|intcomma }} km{% endif %}
+          {% if m.city %} · {{ m.city }}{% endif %}
+        </p>
+        <p class="price"><span class="price-label">Starting bid</span>{{ m.start_price|currency_idr }}</p>
         <a class="btn" href="{% url 'motorcycle_detail' m.pk %}">View &amp; bid</a>
       </div>
     </article>
     {% empty %}
-    <p class="empty-state">No motorcycles listed yet.</p>
+    <p class="empty-state">No motorcycles match these filters.</p>
     {% endfor %}
   </section>
 
   {% if motorcycles.paginator.num_pages > 1 %}
   <div class="pagination">
     {% if motorcycles.has_previous %}
-      <a href="?page={{ motorcycles.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.make %}&make={{ request.GET.make }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="btn">Prev</a>
+      <a href="?page={{ motorcycles.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.make %}&make={{ request.GET.make }}{% endif %}{% if request.GET.city %}&city={{ request.GET.city }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="btn">Prev</a>
     {% endif %}
     <span>Page {{ motorcycles.number }} of {{ motorcycles.paginator.num_pages }}</span>
     {% if motorcycles.has_next %}
-      <a href="?page={{ motorcycles.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.make %}&make={{ request.GET.make }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="btn">Next</a>
+      <a href="?page={{ motorcycles.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.make %}&make={{ request.GET.make }}{% endif %}{% if request.GET.city %}&city={{ request.GET.city }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="btn">Next</a>
     {% endif %}
   </div>
   {% endif %}

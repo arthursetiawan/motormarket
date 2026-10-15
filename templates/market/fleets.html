@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% load price_tags %}
+
+{% block title %}Fleets — MotorMarket{% endblock %}
+
+{% block content %}
+<section class="fleet-hero">
+  <img src="{% static 'img/fleets/fleet-hero.jpg' %}" alt="Scooters lined up in a depot yard">
+  <div class="fleet-hero-copy">
+    <p class="eyebrow">For companies</p>
+    <h2>Put a whole fleet on the road</h2>
+    <p>Delivery, ride-hailing, guest rental, or a sales team. Pack quotes use fair value, deal mix, and city supply — not a flat brochure price.</p>
+    <a class="btn" href="#quote">Request a quote</a>
+  </div>
+</section>
+
+<section class="fleet-grid">
+  {% for program in programs %}
+  <article class="card fleet-card">
+    <img class="fleet-photo" src="{% static program.image %}" alt="{{ program.name }}">
+    <div class="fleet-body">
+      <p class="eyebrow">{{ program.audience }}</p>
+      <h3>{{ program.name }}</h3>
+      <p>{{ program.pitch }}</p>
+      <ul class="chips">
+        {% for city in program.cities %}
+        <li>{{ city }}</li>
+        {% endfor %}
+      </ul>
+      <p class="fleet-models">{{ program.models|join:" · " }}</p>
+      <div class="fleet-facts">
+        <div>
+          <span>Ready now</span>
+          <strong>{{ program.available }}</strong>
+        </div>
+        <div>
+          <span>In these cities</span>
+          <strong>{{ program.in_cities }}</strong>
+        </div>
+        <div>
+          <span>Typical bike</span>
+          <strong>{% if program.avg_fair %}{{ program.avg_fair|currency_idr }}{% else %}Ask us{% endif %}</strong>
+        </div>
+      </div>
+      {% if program.pack %}
+      <div class="fleet-facts">
+        <div>
+          <span>10-bike coverage</span>
+          <strong>{{ program.pack.coverage_pct }}%</strong>
+        </div>
+        <div>
+          <span>Pack ask</span>
+          <strong>{{ program.pack.buy_asks|currency_idr }}</strong>
+        </div>
+        <div>
+          <span>Vs fair value</span>
+          <strong>
+            {% if program.pack.savings_vs_fair > 0 %}
+              −{{ program.pack.savings_vs_fair|currency_idr }}
+            {% elif program.pack.savings_vs_fair < 0 %}
+              +{{ program.pack.savings_vs_fair|abs_num|currency_idr }}
+            {% else %}
+              At fair
+            {% endif %}
+          </strong>
+        </div>
+      </div>
+      {% if program.demand %}
+      <p class="meta">City demand index:
+        {% for row in program.demand|slice:":3" %}
+          {{ row.city }} {{ row.index }}{% if not forloop.last %} · {% endif %}
+        {% endfor %}
+      </p>
+      {% endif %}
+      {% endif %}
+      {% if program.quotes %}
+      <div class="quote-picks">
+        {% for quote in program.quotes %}
+        <a class="quote-pick" href="{% url 'fleets' %}?program={{ program.slug }}&size={{ quote.size }}#pack">
+          <strong>{{ quote.size }} bikes</strong>
+          <span>Buy {{ quote.buy_total|currency_idr }}</span>
+          <span>Rent {{ quote.monthly|currency_idr }}/mo</span>
+        </a>
+        {% endfor %}
+      </div>
+      <p class="meta">{% if program.avg_km %}Matching bikes average {{ program.avg_km|intcomma }} km. {% endif %}Open a size to see the recommended pack from the live book.</p>
+      {% else %}
+      <p class="muted">We’ll price this once matching bikes are on the book.</p>
+      {% endif %}
+      <a class="btn" href="{% url 'fleets' %}?program={{ program.slug }}&size=10#pack">Build a pack</a>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+{% if pack %}
+<section class="card pack-panel" id="pack">
+  <div class="pack-head">
+    <div>
+      <p class="eyebrow">Recommended pack</p>
+      <h3>{{ pack.program.name }} · {{ pack.size }} bikes{% if pack.preferred_city %} · {{ pack.preferred_city }}{% endif %}</h3>
+      <p>{{ pack.on_book }} units on the book ({{ pack.coverage_pct }}% coverage). {% if pack.sourcing_gap %}Source {{ pack.sourcing_gap }} more at about {{ pack.unit_fill|currency_idr }} each.{% else %}Full coverage from live inventory.{% endif %}</p>
+    </div>
+    <div class="fleet-facts">
+      <div>
+        <span>Buy (asks + fill)</span>
+        <strong>{{ pack.buy_total|currency_idr }}</strong>
+      </div>
+      <div>
+        <span>Rent / month</span>
+        <strong>{% if pack.monthly %}{{ pack.monthly|currency_idr }}{% else %}—{% endif %}</strong>
+      </div>
+      <div>
+        <span>Avg km in pack</span>
+        <strong>{% if pack.avg_km %}{{ pack.avg_km|intcomma }}{% else %}—{% endif %}</strong>
+      </div>
+    </div>
+  </div>
+
+  <form method="get" class="pack-controls" action="{% url 'fleets' %}">
+    <input type="hidden" name="program" value="{{ pack.program.slug }}">
+    <label>
+      Size
+      <select name="size">
+        {% for n in pack_sizes %}
+        <option value="{{ n }}" {% if n == pack_size %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Prefer city
+      <input type="text" name="city" value="{{ pack_city }}" placeholder="Jakarta">
+    </label>
+    <button class="btn" type="submit">Refresh pack</button>
+  </form>
+
+  {% if pack.demand %}
+  <div class="demand-row">
+    {% for row in pack.demand %}
+    <div class="demand-chip {% if row.program_city %}is-program{% endif %}">
+      <strong>{{ row.city }}</strong>
+      <span class="bar"><span class="bar-fill" style="width: {{ row.index }}%"></span></span>
+      <span>{{ row.n }} bikes · index {{ row.index }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if pack.units %}
+  <table class="market">
+    <thead>
+      <tr><th>Unit</th><th>City</th><th>Year</th><th>Km</th><th>Ask</th><th>Fair</th><th>Deal</th><th>Pack score</th></tr>
+    </thead>
+    <tbody>
+      {% for unit in pack.units %}
+      <tr>
+        <td><a href="{% url 'motorcycle_detail' unit.pk %}">{{ unit.title }}</a></td>
+        <td>{{ unit.city }}</td>
+        <td>{{ unit.year }}</td>
+        <td>{{ unit.mileage_km|intcomma }}</td>
+        <td>{{ unit.ask|currency_idr }}</td>
+        <td>{% if unit.fair %}{{ unit.fair|currency_idr }}{% else %}—{% endif %}</td>
+        <td>{% if unit.deal_label != "unscored" %}<span class="badge badge-{{ unit.deal_label }}">{{ unit.deal_label|deal_name }}</span>{% else %}—{% endif %}</td>
+        <td>{{ unit.pack_score }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No matching bikes on the book for this program yet.</p>
+  {% endif %}
+  <p class="meta"><a href="{% url 'fleets' %}?program={{ pack.program.slug }}&size={{ pack.size }}{% if pack_city %}&city={{ pack_city|urlencode }}{% endif %}#quote">Use this pack in the quote form →</a></p>
+</section>
+{% endif %}
+
+<section class="card quote-panel" id="quote">
+  <div>
+    <p class="eyebrow">About two minutes</p>
+    <h3>Tell us what you need</h3>
+    <p>Buy totals blend live asks for selected units with fair-value fill for the sourcing gap. Rent spreads that total over 36 months, plus 25%. Service, insurance, and plates are extra.</p>
+  </div>
+  <form method="post" class="fleet-form">
+    {% csrf_token %}
+    {% for field in form %}
+    <label class="{% if field.name == 'notes' %}span-2{% endif %}">
+      {{ field.label }}
+      {{ field }}
+      {% if field.errors %}<span class="field-error">{{ field.errors|striptags }}</span>{% endif %}
+    </label>
+    {% endfor %}
+    <button class="btn" type="submit">Send request</button>
+  </form>
+</section>
+{% endblock %}

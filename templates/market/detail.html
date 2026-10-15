@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load thumb_tags %}
 {% load humanize %}
+{% load price_tags %}
 
 {% block title %}{{ motorcycle.title }} — MotorMarket{% endblock %}
 
@@ -10,21 +11,38 @@
 
 <div class="detail-grid">
   <div class="media">
-    {% if motorcycle.image %}
-      <img src="{% thumb motorcycle.image '800x600' %}" alt="{{ motorcycle.title }}" class="detail-image">
-    {% else %}
-      <div class="placeholder">No image</div>
-    {% endif %}
+    {% listing_photo motorcycle as photo %}
+    <img src="{{ photo }}" alt="{{ motorcycle.title }}" class="detail-image">
   </div>
 
   <div class="info">
-    <p class="meta">{% if motorcycle.make %}{{ motorcycle.make }}{% else %}Motorcycle{% endif %}{% if motorcycle.year %} · {{ motorcycle.year }}{% endif %} · Seller: {{ motorcycle.seller.username }}</p>
-    <p class="price"><span class="price-label">Starting bid</span>Rp {{ motorcycle.start_price|intcomma }}</p>
+    <p class="meta meta-dense">
+      {% if motorcycle.year %}{{ motorcycle.year }}{% endif %}
+      {% if motorcycle.make %} · {{ motorcycle.make }}{% if motorcycle.model_name %} {{ motorcycle.model_name }}{% endif %}{% endif %}
+      {% if motorcycle.mileage_km %} · {{ motorcycle.mileage_km|intcomma }} km{% endif %}
+      {% if motorcycle.city %} · {{ motorcycle.city }}{% endif %}
+      · Seller: {{ motorcycle.seller.username }}
+    </p>
+    <p class="price"><span class="price-label">Starting bid</span>{{ motorcycle.start_price|currency_idr }}</p>
+    {% if motorcycle.engine_cc or motorcycle.condition or motorcycle.transmission %}
+    <p class="meta meta-dense">
+      {% if motorcycle.engine_cc %}{{ motorcycle.engine_cc }}cc{% endif %}
+      {% if motorcycle.transmission %} · {{ motorcycle.transmission|title }}{% endif %}
+      {% if motorcycle.condition %} · {{ motorcycle.condition|title }}{% endif %}
+      {% if motorcycle.fuel_type %} · {{ motorcycle.fuel_type|title }}{% endif %}
+    </p>
+    {% endif %}
     <p>{{ motorcycle.description }}</p>
+
+    {% if prediction %}
+    <p class="meta">Fair value {{ prediction.predicted_price|currency_idr }}
+      {% if prediction.deal_label %} · <span class="badge badge-{{ prediction.deal_label }}">{{ prediction.deal_label|deal_name }}</span>{% endif %}
+    </p>
+    {% endif %}
 
     <p class="highest-bid">
       {% if highest_bid %}
-        Highest bid: Rp {{ highest_bid.amount|intcomma }} by {{ highest_bid.bidder.username }}
+        Highest bid: {{ highest_bid.amount|currency_idr }} by {{ highest_bid.bidder.username }}
       {% else %}
         No bids yet — be the first
       {% endif %}
@@ -53,6 +71,33 @@
     {% endif %}
   </div>
 </div>
+
+{% if similar %}
+<section class="section" style="padding-top:32px">
+  <div class="section-head">
+    <h2 class="section-title">Similar bikes</h2>
+  </div>
+  <div class="grid">
+    {% for m in similar %}
+    <article class="card">
+      {% listing_photo m as photo %}
+      <a class="card-media" href="{% url 'motorcycle_detail' m.pk %}">
+        <img src="{{ photo }}" alt="{{ m.title }}">
+      </a>
+      <div class="card-body">
+        <h3 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h3>
+        <p class="meta meta-dense">
+          {% if m.year %}{{ m.year }}{% endif %}
+          {% if m.mileage_km %} · {{ m.mileage_km|intcomma }} km{% endif %}
+          {% if m.city %} · {{ m.city }}{% endif %}
+        </p>
+        <p class="price"><span class="price-label">Ask</span>{{ m.start_price|currency_idr }}</p>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
