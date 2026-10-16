@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load price_tags %}
+
+{% block title %}Simulasi pembiayaan — NegoMotor{% endblock %}
+
+{% block content %}
+<section class="financing-page">
+  <header class="financing-hero">
+    <p class="financing-eyebrow">NegoMotor</p>
+    <h1>Simulasi pembiayaan</h1>
+    <p class="financing-lede">
+      Hitung estimasi DP, tenor, angsuran/bulan, dan plafon untuk motor bekas.
+      Sesuaikan knop di bawah — hasil hanya estimasi, bukan persetujuan kredit.
+    </p>
+  </header>
+
+  {% if listing %}
+  <p class="financing-listing-chip">
+    Unit: <a href="{% url 'motorcycle_detail' listing.pk %}">{{ listing.title }}</a>
+    · Ask {{ listing.start_price|currency_idr }}
+    {% if listing.condition_grade %} · Grade {{ listing.condition_grade }}{% endif %}
+  </p>
+  {% endif %}
+
+  <div class="financing-layout">
+    <form method="get" action="{% url 'financing' %}" class="financing-form card-panel">
+      <h2>Input kendaraan</h2>
+      {% if form.listing_id %}
+      <input type="hidden" name="listing" value="{{ form.listing_id }}">
+      {% endif %}
+
+      <label>
+        Harga OTR / ask (Rp)
+        <input type="text" name="otr" value="{{ form.otr }}" inputmode="numeric" required>
+      </label>
+
+      <div class="financing-row">
+        <label>
+          Merek
+          <input type="text" name="make" value="{{ form.make }}" placeholder="Honda">
+        </label>
+        <label>
+          Model
+          <input type="text" name="model" value="{{ form.model_name }}" placeholder="Vario 160">
+        </label>
+        <label>
+          Tahun
+          <input type="number" name="year" value="{{ form.year }}" min="1990" max="2030" placeholder="2021">
+        </label>
+      </div>
+
+      <div class="financing-row">
+        <label>
+          Kondisi
+          <select name="condition">
+            <option value="">—</option>
+            <option value="excellent" {% if form.condition == "excellent" %}selected{% endif %}>Istimewa</option>
+            <option value="good" {% if form.condition == "good" %}selected{% endif %}>Baik</option>
+            <option value="fair" {% if form.condition == "fair" %}selected{% endif %}>Cukup</option>
+            <option value="poor" {% if form.condition == "poor" %}selected{% endif %}>Kurang</option>
+          </select>
+        </label>
+        <label>
+          Grade
+          <select name="grade">
+            <option value="">—</option>
+            <option value="A" {% if form.condition_grade == "A" %}selected{% endif %}>A</option>
+            <option value="B" {% if form.condition_grade == "B" %}selected{% endif %}>B</option>
+            <option value="C" {% if form.condition_grade == "C" %}selected{% endif %}>C</option>
+          </select>
+        </label>
+      </div>
+
+      <h2>Knop cicilan</h2>
+      <label>
+        DP (%)
+        <input type="number" name="dp_pct" value="{{ form.dp_pct_display }}" min="10" max="50" step="1">
+      </label>
+      <p class="meta financing-hint">Tipikal motor bekas Rp8–25jt: DP 10–30%.</p>
+
+      <label>
+        Tenor (bulan)
+        <select name="tenor">
+          {% for t in tenor_choices %}
+          <option value="{{ t }}" {% if form.tenor == t %}selected{% endif %}>{{ t }} bulan</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <fieldset class="financing-rate-mode">
+        <legend>Jenis bunga</legend>
+        <label class="inline">
+          <input type="radio" name="rate_mode" value="flat" {% if form.rate_mode == "flat" %}checked{% endif %}>
+          Flat (umum di leasing motor)
+        </label>
+        <label class="inline">
+          <input type="radio" name="rate_mode" value="effective" {% if form.rate_mode == "effective" %}checked{% endif %}>
+          Efektif / anuitas
+        </label>
+      </fieldset>
+
+      <label>
+        Suku bunga tahunan (%)
+        <input type="number" name="rate" value="{{ form.annual_rate_pct }}" min="0" max="60" step="0.1">
+      </label>
+      <p class="meta financing-hint">
+        Contoh flat: 10% / 14% / 18%. Contoh efektif: 18% / 24% / 30%.
+        Default dari env — bisa diganti di sini.
+      </p>
+
+      <button type="submit" class="btn">Hitung ulang</button>
+    </form>
+
+    <div class="financing-results">
+      <div class="financing-stats">
+        <div class="financing-stat">
+          <span>Estimasi DP</span>
+          <strong>{{ estimate.dp_amount|currency_idr }}</strong>
+          <em>{{ form.dp_pct_display }}% dari OTR</em>
+        </div>
+        <div class="financing-stat highlight">
+          <span>Angsuran / bulan</span>
+          <strong>{{ estimate.angsuran|currency_idr }}</strong>
+          <em>{{ estimate.tenor_months }} bulan · {{ estimate.rate_mode }} {{ form.annual_rate_pct }}%/thn</em>
+        </div>
+        <div class="financing-stat">
+          <span>Total bayar</span>
+          <strong>{{ estimate.total_bayar|currency_idr }}</strong>
+          <em>DP + angsuran × tenor + admin</em>
+        </div>
+        <div class="financing-stat">
+          <span>Perkiraan plafon</span>
+          <strong>{{ estimate.plafon|currency_idr }}</strong>
+          <em>LTV ~{% widthratio estimate.eligible_ltv 1 100 %}%</em>
+        </div>
+      </div>
+
+      <div class="financing-breakdown card-panel">
+        <h2>Rincian</h2>
+        <dl class="financing-dl">
+          <dt>OTR / ask</dt><dd>{{ estimate.otr|currency_idr }}</dd>
+          <dt>Pokok pinjaman</dt><dd>{{ estimate.principal|currency_idr }}</dd>
+          <dt>Total bunga</dt><dd>{{ estimate.interest_total|currency_idr }}</dd>
+          <dt>Biaya admin (estimasi)</dt><dd>{{ estimate.admin_fee|currency_idr }}</dd>
+        </dl>
+
+        {% if estimate.eligible_ok %}
+        <p class="financing-eligible ok">Dalam rentang eligible: pokok ≤ plafon perkiraan.</p>
+        {% else %}
+        <p class="financing-eligible warn">
+          Pokok di atas plafon perkiraan — naikkan DP atau pilih unit/grade yang lebih baik.
+        </p>
+        {% endif %}
+      </div>
+
+      <aside class="financing-assumptions card-panel">
+        <h2>Asumsi transparan</h2>
+        <ul>
+          <li>Dasar harga = OTR / harga ask listing (bukan appraisal bank).</li>
+          <li>DP default 20% (rentang knop 10–50%); tipikal motor bekas 10–30%.</li>
+          <li>Tenor tipikal 12–36 bulan; knop sampai 48 untuk eksperimen.</li>
+          <li><strong>Flat:</strong> bunga = pokok × rate tahunan × (tenor/12), lalu dibagi tenor.</li>
+          <li><strong>Efektif:</strong> anuitas compound bulanan (mirip KKB bank).</li>
+          <li>Plafon ≈ OTR × LTV; LTV naik untuk grade A / kondisi istimewa, turun untuk grade C / kurang, dan band harga di luar Rp8–25jt lebih ketat.</li>
+          <li>Biaya admin bisa diubah via <code>FINANCING_ADMIN_FEE_IDR</code>.</li>
+        </ul>
+      </aside>
+
+      <p class="financing-disclaimer" role="note">
+        <strong>Disclaimer:</strong> Hasil di halaman ini adalah <em>estimasi saja</em>, bukan persetujuan
+        atau penawaran pembiayaan. NegoMotor adalah marketplace jual-beli &amp; lelang motor;
+        pembiayaan melalui mitra (jika ada) menyusul. Suku bunga, DP, tenor, dan plafon aktual
+        ditentukan pemberi pinjaman setelah cek kelayakan.
+      </p>
+
+      <p class="financing-actions">
+        {% if listing %}
+        <a class="btn" href="{% url 'motorcycle_detail' listing.pk %}">Kembali ke listing</a>
+        {% endif %}
+        <a class="btn btn-ghost" href="{% url 'index' %}">Lihat lelang</a>
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

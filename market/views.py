@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -816,6 +817,96 @@ def watchlist_view(request):
 
 def terms(request):
     return render(request, "market/terms.html")
+
+
+def financing(request):
+    """Simulasi kredit / cicilan — estimasi only (no lender API)."""
+    from market.services.financing import (
+        TENOR_CHOICES,
+        default_dp_pct,
+        default_effective_rate,
+        default_flat_rate,
+        default_tenor_months,
+        parse_query,
+        simulate,
+    )
+
+    knobs = parse_query(request.GET)
+    listing = None
+    otr = knobs["otr"]
+    condition = knobs["condition"]
+    condition_grade = knobs["condition_grade"]
+    make = knobs["make"]
+    model_name = knobs["model_name"]
+    year = knobs["year"]
+
+    if knobs["listing_id"]:
+        listing = Motorcycle.objects.filter(pk=knobs["listing_id"]).first()
+        if listing:
+            if otr is None:
+                otr = listing.start_price
+            make = make or listing.make
+            model_name = model_name or listing.model_name
+            year = year or listing.year
+            condition = condition or listing.condition
+            condition_grade = condition_grade or getattr(listing, "condition_grade", None)
+
+    if otr is None:
+        otr = Decimal("15000000")  # mid used-bike default for blank form
+
+    rate_mode = knobs["rate_mode"]
+    annual_rate = knobs["annual_rate"]
+    if annual_rate is None:
+        annual_rate = default_flat_rate() if rate_mode == "flat" else default_effective_rate()
+
+    dp_pct = knobs["dp_pct"] if knobs["dp_pct"] is not None else default_dp_pct()
+    tenor = knobs["tenor_months"] if knobs["tenor_months"] is not None else default_tenor_months()
+
+    estimate = simulate(
+        otr,
+        dp_pct=dp_pct,
+        tenor_months=tenor,
+        rate_mode=rate_mode,
+        annual_rate=annual_rate,
+        condition=condition,
+        condition_grade=condition_grade,
+    )
+
+    return render(
+        request,
+        "market/financing.html",
+        {
+            "estimate": estimate,
+            "listing": listing,
+            "vehicle": {
+                "make": make,
+                "model_name": model_name,
+                "year": year,
+                "condition": condition,
+                "condition_grade": condition_grade,
+            },
+            "form": {
+                "otr": otr,
+                "dp_pct": dp_pct,
+                "dp_pct_display": (dp_pct * 100).quantize(Decimal("1")),
+                "tenor": tenor,
+                "rate_mode": rate_mode,
+                "annual_rate": annual_rate,
+                "annual_rate_pct": (annual_rate * 100).quantize(Decimal("0.1")),
+                "condition": condition or "",
+                "condition_grade": condition_grade or "",
+                "make": make or "",
+                "model_name": model_name or "",
+                "year": year or "",
+                "listing_id": listing.pk if listing else (knobs["listing_id"] or ""),
+            },
+            "tenor_choices": TENOR_CHOICES,
+            "rate_samples": {
+                "flat": [Decimal("0.10"), Decimal("0.14"), Decimal("0.18")],
+                "effective": [Decimal("0.18"), Decimal("0.24"), Decimal("0.30")],
+            },
+        },
+    )
 
 
 def fleets(request):
