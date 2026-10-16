@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Daftar — NegoMotor{% endblock %}
+
+{% block content %}
+<p class="meta"><a href="{% url 'home' %}">Beranda</a> · Daftar</p>
+
+<section class="profile-panel kyc-signup">
+  <h1>Daftar NegoMotor</h1>
+  <p class="lede">Buat akun untuk jual atau menawar motor bekas di Indonesia.</p>
+
+  <aside class="privacy-note" role="note">
+    <strong>Privasi data</strong>
+    <p>
+      Email, nomor KTP (NIK), tanggal lahir, dan foto diri digunakan untuk
+      <em>verifikasi &amp; catatan perusahaan</em> NegoMotor.
+      Data ini <strong>tidak ditampilkan</strong> ke pengguna lain di profil marketplace.
+    </p>
+  </aside>
+
+  <form method="post" action="{% url 'account_signup' %}" enctype="multipart/form-data" class="create-form kyc-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <ul class="messages span-2">
+      {% for err in form.non_field_errors %}
+      <li class="error">{{ err }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% for field in form %}
+    <label class="{% if field.name == 'selfie' or field.name == 'email' %}span-2{% endif %}">
+      {{ field.label }}
+      {{ field }}
+      {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+      {% for err in field.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+    </label>
+    {% endfor %}
+
+    <button type="submit" class="btn span-2">Buat akun</button>
+  </form>
+
+  <p class="meta">Sudah punya akun? <a href="{% url 'account_login' %}">Masuk</a></p>
+</section>
+{% endblock %}

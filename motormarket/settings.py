@@ -143,9 +143,19 @@ CHANNEL_LAYERS = {
 # Redirects for login/logout (avoid default /accounts/profile/ 404)
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
-# allauth specific
+# allauth specific — email required; KYC fields via custom signup form
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
 ACCOUNT_LOGOUT_REDIRECT = '/'
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_FORMS = {
+    'signup': 'market.forms.KycSignupForm',
+}
+
+# KYC selfie uploads — keep memory/body limits aligned with validators.SELFIE_MAX_BYTES (5 MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
 
 # NegoMotor auction mashup (BaT-lite soft close / proxy)
 AUCTION_MIN_INCREMENT_IDR = os.environ.get('AUCTION_MIN_INCREMENT_IDR', '50000')

@@ -43,6 +43,7 @@ from market.services.sentiment import (
     score_listing_sentiment,
     seller_listing_sentiment,
 )
+from market.services.kyc import kyc_incomplete_message, kyc_is_complete
 from market.services.trust import TRUST_COPY, listing_trust
 from market.services.unlock import (
     buyer_has_paid_fee,
@@ -50,7 +51,18 @@ from market.services.unlock import (
     reveal_contact,
     simulate_pay_fee,
 )
-from .forms import CloseDealForm, DealSheetForm, FleetInquiryForm, ListingCommentForm, ListingMessageForm, MotorcycleForm, PpiRequestForm, ProxyBidForm, UserRatingForm
+from .forms import (
+    CloseDealForm,
+    CompleteKycForm,
+    DealSheetForm,
+    FleetInquiryForm,
+    ListingCommentForm,
+    ListingMessageForm,
+    MotorcycleForm,
+    PpiRequestForm,
+    ProxyBidForm,
+    UserRatingForm,
+)
 
 TRUST_FILTERS = {"high_trust", "review", "caution"}
 ANOMALY_FILTERS = {"ok", "waspada", "waspada_tinggi"}
@@ -60,6 +72,14 @@ def _live_qs():
     return Motorcycle.objects.filter(is_published=True).exclude(
         auction_status=Motorcycle.STATUS_ENDED,
     )
+
+
+def _require_complete_kyc(request):
+    """Redirect to KYC completion when profile is incomplete. Returns None if OK."""
+    if kyc_is_complete(request.user):
+        return None
+    messages.warning(request, kyc_incomplete_message())
+    return redirect("complete_kyc")
 
 
 def index(request):
@@ -265,6 +285,9 @@ def motorcycle_detail(request, pk):
 
 @login_required
 def place_bid(request, pk):
+    blocked = _require_complete_kyc(request)
+    if blocked:
+        return blocked
     motorcycle = get_object_or_404(Motorcycle, pk=pk)
     if request.POST.get("max_amount"):
         form = ProxyBidForm(request.POST)
@@ -561,6 +584,9 @@ def suggest_ask(request):
 
 @login_required
 def create_listing(request):
+    blocked = _require_complete_kyc(request)
+    if blocked:
+        return blocked
     suggestion = None
     if request.method == "POST":
         form = MotorcycleForm(request.POST, request.FILES)
@@ -581,6 +607,30 @@ def create_listing(request):
     else:
         form = MotorcycleForm()
     return render(request, "market/create.html", {"form": form, "suggestion": suggestion})
+
+
+@login_required
+def complete_kyc(request):
+    """Fill missing KYC fields for accounts created before the gate, or incomplete signup."""
+    if kyc_is_complete(request.user):
+        messages.info(request, "Verifikasi akun Anda sudah lengkap.")
+        return redirect("profile")
+    if request.method == "POST":
+        form = CompleteKycForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save(request.user)
+            messages.success(
+                request,
+                "Verifikasi tersimpan. Data KTP & foto diri hanya untuk catatan perusahaan — "
+                "tidak ditampilkan ke pengguna lain.",
+            )
+            next_url = request.GET.get("next") or request.POST.get("next") or ""
+            if next_url.startswith("/"):
+                return redirect(next_url)
+            return redirect("profile")
+    else:
+        form = CompleteKycForm()
+    return render(request, "account/kyc_complete.html", {"form": form})
 
 
 @login_required
@@ -607,8 +657,11 @@ def _render_profile(request, profile_user):
         .order_by("-created_at")[:12]
     )
     pending = []
-    if request.user.is_authenticated and request.user.pk == profile_user.pk:
+    is_own = request.user.is_authenticated and request.user.pk == profile_user.pk
+    if is_own:
         pending = pending_ratings_for(request.user)
+    # Never pass raw KTP / selfie into public profile templates.
+    kyc_complete = kyc_is_complete(profile_user) if is_own else None
     return render(
         request,
         "account/profile.html",
@@ -619,7 +672,8 @@ def _render_profile(request, profile_user):
             "seller_sentiment": seller_listing_sentiment(profile_user),
             "received_ratings": received,
             "pending_ratings": pending,
-            "is_own_profile": request.user.is_authenticated and request.user.pk == profile_user.pk,
+            "kyc_complete": kyc_complete,
+            "is_own_profile": is_own,
         },
     )
 
@@ -709,6 +763,9 @@ def sold_archive(request):
 
 @login_required
 def buy_now_view(request, pk):
+    blocked = _require_complete_kyc(request)
+    if blocked:
+        return blocked
     motorcycle = get_object_or_404(Motorcycle, pk=pk)
     if request.method != "POST":
         return redirect("motorcycle_detail", pk=pk)

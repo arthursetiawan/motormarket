@@ -630,3 +630,54 @@ class PpiRequest(models.Model):
 
     def __str__(self):
         return f"PPI {self.motorcycle_id} · {self.requester.username}"
+
+
+class UserProfile(models.Model):
+    """
+    Private KYC / company-record fields for NegoMotor registration.
+
+    KTP number and selfie must never be rendered on public marketplace profiles.
+    Staff may view them in Django admin for verifikasi & catatan perusahaan.
+    """
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    ktp_number = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="NIK 16 digit — private company record only.",
+    )
+    date_of_birth = models.DateField(null=True, blank=True)
+    selfie = models.ImageField(
+        upload_to="kyc/selfies/%Y/%m/",
+        blank=True,
+        null=True,
+        help_text="Foto diri for company records — never public.",
+    )
+    kyc_completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User KYC profile"
+        verbose_name_plural = "User KYC profiles"
+
+    def __str__(self):
+        # Never include raw KTP in string/logs.
+        status = "lengkap" if self.is_complete else "belum lengkap"
+        return f"KYC · {self.user.username} · {status}"
+
+    @property
+    def is_complete(self) -> bool:
+        return bool(
+            self.ktp_number
+            and len(self.ktp_number) == 16
+            and self.ktp_number.isdigit()
+            and self.date_of_birth
+            and self.selfie
+        )
+
+    def masked_ktp(self) -> str:
+        n = self.ktp_number or ""
+        if len(n) != 16:
+            return "—"
+        return f"{n[:4]}••••••••{n[-4:]}"

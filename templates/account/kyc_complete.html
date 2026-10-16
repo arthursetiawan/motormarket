@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Lengkapi verifikasi — NegoMotor{% endblock %}
+
+{% block content %}
+<p class="meta"><a href="{% url 'profile' %}">Profil</a> · Verifikasi</p>
+
+<section class="profile-panel kyc-signup">
+  <h1>Lengkapi verifikasi akun</h1>
+  <p class="lede">Wajib sebelum jual atau menawar di NegoMotor.</p>
+
+  <aside class="privacy-note" role="note">
+    <strong>Privasi data</strong>
+    <p>
+      Nomor KTP (NIK), tanggal lahir, dan foto diri untuk
+      <em>verifikasi &amp; catatan perusahaan</em>.
+      Tidak ditampilkan ke pengguna lain.
+    </p>
+  </aside>
+
+  <form method="post" action="{% url 'complete_kyc' %}" enctype="multipart/form-data" class="create-form kyc-form">
+    {% csrf_token %}
+    {% if request.GET.next %}
+    <input type="hidden" name="next" value="{{ request.GET.next }}">
+    {% endif %}
+    {% for field in form %}
+    <label class="{% if field.name == 'selfie' %}span-2{% endif %}">
+      {{ field.label }}
+      {{ field }}
+      {% if field.help_text %}<span class="muted small">{{ field.help_text }}</span>{% endif %}
+      {% for err in field.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+    </label>
+    {% endfor %}
+    <button type="submit" class="btn span-2">Simpan verifikasi</button>
+  </form>
+</section>
+{% endblock %}

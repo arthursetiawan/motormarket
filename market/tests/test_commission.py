@@ -8,6 +8,7 @@ from market.models import DealSheet, ListingMessage, Motorcycle, PlatformFee
 from market.services.contact_filter import filter_chat_message, scrub_public_text
 from market.services.fees import compute_platform_fee
 from market.services.unlock import buyer_has_paid_fee, simulate_pay_fee
+from market.tests.kyc_helpers import attach_complete_kyc
 
 
 class FeeCalcTests(SimpleTestCase):
@@ -38,6 +39,8 @@ class CommissionFlowTests(TestCase):
     def setUp(self):
         self.seller = User.objects.create_user("seller_c", password="x")
         self.buyer = User.objects.create_user("buyer_c", password="x")
+        attach_complete_kyc(self.seller)
+        attach_complete_kyc(self.buyer)
         self.bike = Motorcycle.objects.create(
             title="2021 Honda Vario",
             description="Vario bersih single owner Jakarta Selatan ready.",

@@ -77,6 +77,7 @@ Model documentation: `artifacts/reports/MODEL_CARD.md`.
 - Market anomaly / waspada badges on score (`ListingPrediction.anomaly_*`)
 - Indo auction mashup: soft close, proxy bid, watchlist, grade A/B/C, Buy Now
 - Dual deal ratings (as seller / as buyer) after `ClosedDeal`; listing text sentiment (`ml/sentiment.py`)
+- KYC registration: email + KTP (NIK 16 digit) + DOB + selfie required; stored on `UserProfile`; private from other users; sell/bid gated until complete (`/market/kyc/`)
 - API: `GET /api/motorcycles/<id>/trust/`, `.../anomaly/`, `GET /api/fleets/pack/?program=delivery&size=25&exclude_caution=1&ojol_ready=1`, `GET /api/fleets/coverage/`
 
 **How to verify**
@@ -88,6 +89,7 @@ python manage.py runserver
 # Detail: /market/motorcycle/<id>/ — skor kepercayaan + chip surat + lembar deal
 # Fleets: /market/fleets/?program=ride_hailing&exclude_caution=1&ojol_ready=1#pack
 # Fee unlock: chat → Bayar biaya platform (simulated) → kontak terbuka; /market/terms/
+# KYC signup: /accounts/signup/ — email, NIK, DOB, selfie; admin /admin/market/userprofile/
 python manage.py test market.tests
 ```
 
