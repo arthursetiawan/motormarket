@@ -40,6 +40,11 @@ def assess_bike(
         engine_cc=bike.engine_cc,
         has_image=bool(bike.image),
         description=bike.description,
+        stnk_status=getattr(bike, "stnk_status", None),
+        bpkb_status=getattr(bike, "bpkb_status", None),
+        pajak_mati=getattr(bike, "pajak_mati", None),
+        plate_number=getattr(bike, "plate_number", None) or None,
+        tax_valid_through=getattr(bike, "tax_valid_through", None),
     )
 
 
@@ -74,7 +79,7 @@ def listing_trust(bike: Motorcycle, *, prefer_stored: bool = True) -> TrustRepor
 
 
 TRUST_COPY = {
-    "high_trust": "Looks consistent with the book and the price model.",
-    "review": "A few signals to check before you bid or buy.",
-    "caution": "Several risk signals — verify the bike and papers carefully.",
+    "high_trust": "Konsisten dengan buku & estimasi harga — aman dilanjut cek fisik.",
+    "review": "Ada beberapa sinyal — cek fisik & surat-surat sebelum tawar.",
+    "caution": "Beberapa risiko — wajib verifikasi unit & surat-surat dengan teliti.",
 }

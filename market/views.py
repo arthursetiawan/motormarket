@@ -12,13 +12,13 @@ from django.views.decorators.http import require_GET
 
 from ml.paths import IMPORTANCE_PATH, METRICS_PATH
 from ml.recommend import similar_listings
-from market.models import Bid, Motorcycle
+from market.models import Bid, DealSheet, Motorcycle
 from market.services.desk import listing_desk, market_board
 from market.services.fleet_intel import enrich_programs, market_coverage, pack_snapshot, recommend_pack
 from market.services.fleets import PROGRAMS
 from market.services.pricing import listings_frame, score_listing, suggest_fair_value
 from market.services.trust import TRUST_COPY, listing_trust
-from .forms import FleetInquiryForm, MotorcycleForm
+from .forms import DealSheetForm, FleetInquiryForm, MotorcycleForm
 
 TRUST_FILTERS = {"high_trust", "review", "caution"}
 
@@ -33,6 +33,7 @@ def index(request):
     trust = request.GET.get("trust")
     q = request.GET.get("q")
     sort = request.GET.get("sort")
+    surat = request.GET.get("surat")
 
     if make:
         qs = qs.filter(make__iexact=make)
@@ -44,6 +45,12 @@ def index(request):
         qs = qs.filter(prediction__deal_label=deal)
     if trust in TRUST_FILTERS:
         qs = qs.filter(prediction__trust_label=trust)
+    if surat == "lengkap":
+        qs = qs.filter(
+            stnk_status="lengkap",
+            bpkb_status__in=["ada", "di_leasing"],
+            pajak_mati=False,
+        )
     if q:
         qs = qs.filter(
             Q(title__icontains=q)
@@ -94,6 +101,11 @@ def motorcycle_detail(request, pk):
             similar = []
 
     trust = listing_trust(motorcycle)
+    deal_form = DealSheetForm(initial={"meetup_city": motorcycle.city})
+    deal_sheets = []
+    if request.user.is_authenticated and request.user == motorcycle.seller:
+        deal_sheets = list(motorcycle.deal_sheets.select_related("buyer")[:20])
+
     return render(
         request,
         "market/detail.html",
@@ -105,6 +117,9 @@ def motorcycle_detail(request, pk):
             "desk": listing_desk(motorcycle),
             "trust": trust,
             "trust_copy": TRUST_COPY.get(trust.label, ""),
+            "deal_form": deal_form,
+            "deal_sheets": deal_sheets,
+            "min_bid": float(highest_bid.amount) if highest_bid else float(motorcycle.start_price),
         },
     )
 
@@ -116,11 +131,24 @@ def place_bid(request, pk):
     if amount:
         try:
             amount = float(amount)
-            if amount <= float(motorcycle.start_price):
-                messages.error(request, "Bid must be higher than start price")
+            highest = motorcycle.bids.order_by("-amount").first()
+            floor = float(highest.amount) if highest else float(motorcycle.start_price)
+            if amount <= floor:
+                if highest:
+                    messages.error(
+                        request,
+                        f"Tawaran harus lebih tinggi dari tawaran tertinggi saat ini (Rp {int(floor):,}).".replace(
+                            ",", "."
+                        ),
+                    )
+                else:
+                    messages.error(
+                        request,
+                        f"Tawaran harus lebih tinggi dari harga awal (Rp {int(floor):,}).".replace(",", "."),
+                    )
             else:
                 bid = Bid.objects.create(motorcycle=motorcycle, bidder=request.user, amount=amount)
-                messages.success(request, "Bid placed successfully")
+                messages.success(request, "Tawaran berhasil dikirim")
                 try:
                     channel_layer = get_channel_layer()
                     async_to_sync(channel_layer.group_send)(
@@ -138,7 +166,28 @@ def place_bid(request, pk):
                 except Exception:
                     pass
         except ValueError:
-            messages.error(request, "Invalid bid amount")
+            messages.error(request, "Nominal tawaran tidak valid")
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+def submit_deal_sheet(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    if request.user == motorcycle.seller:
+        messages.error(request, "Penjual tidak mengirim lembar deal untuk listing sendiri.")
+        return redirect("motorcycle_detail", pk=pk)
+    if request.method != "POST":
+        return redirect("motorcycle_detail", pk=pk)
+
+    form = DealSheetForm(request.POST)
+    if form.is_valid():
+        sheet = form.save(commit=False)
+        sheet.motorcycle = motorcycle
+        sheet.buyer = request.user
+        sheet.save()
+        messages.success(request, "Lembar deal terkirim — penjual bisa lihat minat temu & cara bayar Anda.")
+    else:
+        messages.error(request, "Lembar deal belum lengkap. Cek kota temu dan cara bayar.")
     return redirect("motorcycle_detail", pk=pk)
 
 
@@ -186,7 +235,7 @@ def create_listing(request):
             listing.seller = request.user
             listing.save()
             score_listing(listing)
-            messages.success(request, "Listing created and scored against the price model")
+            messages.success(request, "Listing dibuat dan dinilai terhadap model harga")
             return redirect("motorcycle_detail", pk=listing.pk)
         suggestion = suggest_fair_value(form.data)
     else:
@@ -206,6 +255,8 @@ def fleets(request):
     size = int(size_raw) if size_raw and size_raw.isdigit() else 10
     size = max(5, min(size, 200))
     city = (request.GET.get("city") or "").strip()
+    exclude_caution = request.GET.get("exclude_caution") in ("1", "true", "on", "yes")
+    ojol_ready = request.GET.get("ojol_ready") in ("1", "true", "on", "yes")
 
     if request.method == "POST":
         form = FleetInquiryForm(request.POST)
@@ -222,8 +273,8 @@ def fleets(request):
             extra = f" Pack snapshot saved ({coverage}% coverage)." if coverage is not None else ""
             messages.success(
                 request,
-                f"Request saved for {inquiry.company_name}. A {inquiry.fleet_size}-bike "
-                f"{inquiry.get_use_case_display().lower()} fleet in {inquiry.city}.{extra}",
+                f"Permintaan tersimpan untuk {inquiry.company_name}. Armada {inquiry.fleet_size} unit "
+                f"({inquiry.get_use_case_display()}) di {inquiry.city}.{extra}",
             )
             return redirect("fleets")
     else:
@@ -240,7 +291,13 @@ def fleets(request):
 
     pack = None
     if program in {row["slug"] for row in PROGRAMS}:
-        pack = recommend_pack(program, size=size, preferred_city=city or None)
+        pack = recommend_pack(
+            program,
+            size=size,
+            preferred_city=city or None,
+            exclude_caution=exclude_caution,
+            ojol_ready=ojol_ready,
+        )
 
     return render(
         request,
@@ -253,6 +310,8 @@ def fleets(request):
             "pack_size": size,
             "pack_city": city,
             "pack_sizes": (10, 25, 50, 100),
+            "exclude_caution": exclude_caution,
+            "ojol_ready": ojol_ready,
         },
     )
 

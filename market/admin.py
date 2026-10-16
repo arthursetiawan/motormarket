@@ -1,13 +1,25 @@
 from django.contrib import admin
 
-from .models import Bid, FleetInquiry, ListingPrediction, Motorcycle
+from .models import Bid, DealSheet, FleetInquiry, ListingPrediction, Motorcycle
 
 
 @admin.register(Motorcycle)
 class MotorcycleAdmin(admin.ModelAdmin):
-    list_display = ("title", "make", "year", "city", "start_price", "condition", "seller", "created_at")
-    search_fields = ("title", "description", "make", "model_name", "city")
-    list_filter = ("make", "year", "city", "condition")
+    list_display = (
+        "title",
+        "make",
+        "year",
+        "city",
+        "start_price",
+        "stnk_status",
+        "bpkb_status",
+        "pajak_mati",
+        "condition",
+        "seller",
+        "created_at",
+    )
+    search_fields = ("title", "description", "make", "model_name", "city", "plate_number")
+    list_filter = ("make", "year", "city", "condition", "stnk_status", "bpkb_status", "pajak_mati")
 
 
 @admin.register(Bid)
@@ -43,3 +55,17 @@ class ListingPredictionAdmin(admin.ModelAdmin):
     )
     list_filter = ("deal_label", "trust_label")
     readonly_fields = ("trust_flags", "features")
+
+
+@admin.register(DealSheet)
+class DealSheetAdmin(admin.ModelAdmin):
+    list_display = (
+        "motorcycle",
+        "buyer",
+        "meetup_city",
+        "payment_preference",
+        "dp_amount",
+        "created_at",
+    )
+    list_filter = ("payment_preference", "meetup_city")
+    search_fields = ("buyer__username", "motorcycle__title", "meetup_area")

@@ -10,4 +10,5 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('motorcycle/<int:pk>/', views.motorcycle_detail, name='motorcycle_detail'),
     path('motorcycle/<int:pk>/bid/', views.place_bid, name='place_bid'),
+    path('motorcycle/<int:pk>/deal/', views.submit_deal_sheet, name='submit_deal_sheet'),
 ]

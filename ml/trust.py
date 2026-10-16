@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from ml.plates import plate_matches_city, plate_region_code
+
 
 ANCHOR_YEAR = 2026
 EXPECTED_KM_PER_YEAR = 7800
@@ -56,6 +58,11 @@ def assess_listing(
     engine_cc: int | None = None,
     has_image: bool = False,
     description: str | None = None,
+    stnk_status: str | None = None,
+    bpkb_status: str | None = None,
+    pajak_mati: bool | None = None,
+    plate_number: str | None = None,
+    tax_valid_through: int | None = None,
 ) -> TrustReport:
     """Return a 0–100 trust score and human-readable flags."""
     flags: list[TrustFlag] = []
@@ -78,22 +85,22 @@ def assess_listing(
             TrustFlag(
                 "incomplete_fields",
                 "watch",
-                f"Missing or empty fields: {', '.join(missing)}.",
+                f"Field belum lengkap: {', '.join(missing)}.",
             )
         )
         score -= 12 * (1 - completeness)
 
     if not has_image:
-        flags.append(TrustFlag("no_photo", "watch", "No listing photo uploaded."))
+        flags.append(TrustFlag("no_photo", "watch", "Belum ada foto listing."))
         score -= 8
 
     if description is not None and len(description.strip()) < 40:
-        flags.append(TrustFlag("thin_description", "info", "Description is very short."))
+        flags.append(TrustFlag("thin_description", "info", "Deskripsi terlalu singkat."))
         score -= 4
 
     age = _age_years(year)
     if year is not None and (year < 2008 or year > ANCHOR_YEAR):
-        flags.append(TrustFlag("year_out_of_range", "alert", f"Year {year} is outside the expected book."))
+        flags.append(TrustFlag("year_out_of_range", "alert", f"Tahun {year} di luar kisaran buku."))
         score -= 25
 
     if age is not None and mileage_km is not None and mileage_km >= 0:
@@ -103,7 +110,7 @@ def assess_listing(
                 TrustFlag(
                     "high_mileage_rate",
                     "watch",
-                    f"About {int(km_per_year):,} km/year — high for a typical Indonesian scooter.",
+                    f"Sekitar {int(km_per_year):,} km/tahun — tinggi untuk matic Indonesia tipikal.",
                 )
             )
             score -= 10
@@ -112,17 +119,17 @@ def assess_listing(
                 TrustFlag(
                     "low_mileage_rate",
                     "watch",
-                    f"About {int(km_per_year):,} km/year — unusually low; verify the odometer.",
+                    f"Sekitar {int(km_per_year):,} km/tahun — sangat rendah; verifikasi odometer (waspada odo tipu).",
                 )
             )
             score -= 12
 
     if owners_count is not None and owners_count >= 4:
-        flags.append(TrustFlag("many_owners", "watch", f"{owners_count} recorded owners."))
+        flags.append(TrustFlag("many_owners", "watch", f"{owners_count} pemilik tercatat."))
         score -= 8
 
     if asking_price is not None and asking_price <= 0:
-        flags.append(TrustFlag("invalid_ask", "alert", "Asking price is not positive."))
+        flags.append(TrustFlag("invalid_ask", "alert", "Harga awal tidak positif."))
         score -= 30
 
     if deal_score is not None:
@@ -131,7 +138,7 @@ def assess_listing(
                 TrustFlag(
                     "extreme_deal",
                     "alert",
-                    f"Ask is ~{deal_score:.0f}% under model fair value — verify before bidding.",
+                    f"Harga ~{deal_score:.0f}% di bawah estimasi wajar — cek fisik & surat sebelum tawar.",
                 )
             )
             score -= 18
@@ -140,7 +147,7 @@ def assess_listing(
                 TrustFlag(
                     "extreme_premium",
                     "watch",
-                    f"Ask is ~{abs(deal_score):.0f}% over model fair value.",
+                    f"Harga ~{abs(deal_score):.0f}% di atas estimasi wajar.",
                 )
             )
             score -= 8
@@ -155,10 +162,77 @@ def assess_listing(
             TrustFlag(
                 "condition_price_mismatch",
                 "watch",
-                "Poor condition priced near model fair value for a typical good bike.",
+                "Kondisi kurang tapi harga dekat estimasi untuk unit baik.",
             )
         )
         score -= 10
+
+    # --- Surat / documents (Indonesia) ---
+    stnk = (stnk_status or "unknown").lower()
+    bpkb = (bpkb_status or "unknown").lower()
+
+    if stnk == "hilang":
+        flags.append(TrustFlag("stnk_missing", "alert", "STNK hilang — risiko tinggi untuk jual-beli."))
+        score -= 15
+    elif stnk == "atas_nama_lain":
+        flags.append(
+            TrustFlag(
+                "stnk_other_name",
+                "watch",
+                "STNK atas nama lain — pastikan kwitansi & proses balik nama.",
+            )
+        )
+        score -= 8
+    elif stnk == "unknown":
+        flags.append(TrustFlag("stnk_unknown", "info", "Status STNK belum diisi penjual."))
+        score -= 3
+
+    if bpkb == "hilang":
+        flags.append(TrustFlag("bpkb_missing", "alert", "BPKB hilang — waspada unit bermasalah / bodong."))
+        score -= 20
+    elif bpkb == "di_leasing":
+        flags.append(
+            TrustFlag(
+                "bpkb_at_leasing",
+                "watch",
+                "BPKB masih di leasing — pelunasan / roya diperlukan sebelum serah terima penuh.",
+            )
+        )
+        score -= 6
+    elif bpkb == "unknown":
+        flags.append(TrustFlag("bpkb_unknown", "info", "Status BPKB belum diisi penjual."))
+        score -= 3
+
+    if pajak_mati is True:
+        flags.append(
+            TrustFlag(
+                "pajak_mati",
+                "alert",
+                "Pajak/STNK mati — tidak cocok ojol sampai diperpanjang.",
+            )
+        )
+        score -= 12
+    elif tax_valid_through is not None and tax_valid_through < ANCHOR_YEAR:
+        flags.append(
+            TrustFlag(
+                "pajak_mati",
+                "alert",
+                f"Pajak berlaku sampai {tax_valid_through} — sudah lewat tahun buku.",
+            )
+        )
+        score -= 12
+
+    match = plate_matches_city(plate_number, city)
+    if match is False:
+        region = plate_region_code(plate_number)
+        flags.append(
+            TrustFlag(
+                "plate_city_mismatch",
+                "watch",
+                f"Plat {region or '?'} tidak cocok dengan kota listing ({city}).",
+            )
+        )
+        score -= 8
 
     if engine_cc is not None and engine_cc > 0 and asking_price and predicted_price:
         # Soft check already covered by deal_score; keep score floor clean.
