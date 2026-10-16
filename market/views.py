@@ -6,17 +6,21 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from ml.paths import IMPORTANCE_PATH, METRICS_PATH
 from ml.recommend import similar_listings
 from market.models import Bid, Motorcycle
 from market.services.desk import listing_desk, market_board
-from market.services.fleet_intel import enrich_programs, market_coverage, recommend_pack
+from market.services.fleet_intel import enrich_programs, market_coverage, pack_snapshot, recommend_pack
 from market.services.fleets import PROGRAMS
-from market.services.pricing import listings_frame, score_listing
+from market.services.pricing import listings_frame, score_listing, suggest_fair_value
 from market.services.trust import TRUST_COPY, listing_trust
 from .forms import FleetInquiryForm, MotorcycleForm
+
+TRUST_FILTERS = {"high_trust", "review", "caution"}
 
 
 def index(request):
@@ -26,6 +30,7 @@ def index(request):
     year = request.GET.get("year")
     city = request.GET.get("city")
     deal = request.GET.get("deal")
+    trust = request.GET.get("trust")
     q = request.GET.get("q")
     sort = request.GET.get("sort")
 
@@ -37,6 +42,8 @@ def index(request):
         qs = qs.filter(city__iexact=city)
     if deal:
         qs = qs.filter(prediction__deal_label=deal)
+    if trust in TRUST_FILTERS:
+        qs = qs.filter(prediction__trust_label=trust)
     if q:
         qs = qs.filter(
             Q(title__icontains=q)
@@ -50,6 +57,8 @@ def index(request):
         qs = qs.order_by("-start_price")
     elif sort == "deal":
         qs = qs.order_by("-prediction__deal_score")
+    elif sort == "trust":
+        qs = qs.order_by("-prediction__trust_score")
 
     paginator = Paginator(qs.select_related("prediction"), 12)
     motorcycles = paginator.get_page(request.GET.get("page"))
@@ -64,7 +73,10 @@ def index(request):
 def motorcycle_detail(request, pk):
     motorcycle = get_object_or_404(Motorcycle.objects.select_related("prediction", "seller"), pk=pk)
     highest_bid = motorcycle.bids.order_by("-amount").first()
-    prediction = getattr(motorcycle, "prediction", None)
+    try:
+        prediction = motorcycle.prediction
+    except Exception:
+        prediction = None
     if prediction is None:
         prediction = score_listing(motorcycle)
         if prediction is not None:
@@ -146,8 +158,27 @@ def home(request):
     )
 
 
+@require_GET
+@login_required
+def suggest_ask(request):
+    """JSON fair-value hint for the create-listing form (GET avoids CSRF friction)."""
+    required = ("make", "model_name", "year", "mileage_km", "condition", "city")
+    if any(not request.GET.get(key) for key in required):
+        return JsonResponse({"detail": "need make, model_name, year, mileage_km, condition, city"}, status=400)
+    data = {key: request.GET.get(key) for key in request.GET}
+    try:
+        ask = float(request.GET["start_price"]) if request.GET.get("start_price") else None
+    except (TypeError, ValueError):
+        ask = None
+    suggestion = suggest_fair_value(data, asking_price=ask)
+    if suggestion is None:
+        return JsonResponse({"detail": "model not trained"}, status=503)
+    return JsonResponse(suggestion)
+
+
 @login_required
 def create_listing(request):
+    suggestion = None
     if request.method == "POST":
         form = MotorcycleForm(request.POST, request.FILES)
         if form.is_valid():
@@ -157,9 +188,10 @@ def create_listing(request):
             score_listing(listing)
             messages.success(request, "Listing created and scored against the price model")
             return redirect("motorcycle_detail", pk=listing.pk)
+        suggestion = suggest_fair_value(form.data)
     else:
         form = MotorcycleForm()
-    return render(request, "market/create.html", {"form": form})
+    return render(request, "market/create.html", {"form": form, "suggestion": suggestion})
 
 
 @login_required
@@ -178,10 +210,20 @@ def fleets(request):
     if request.method == "POST":
         form = FleetInquiryForm(request.POST)
         if form.is_valid():
-            inquiry = form.save()
+            inquiry = form.save(commit=False)
+            pack = recommend_pack(
+                inquiry.use_case,
+                size=inquiry.fleet_size,
+                preferred_city=inquiry.city or None,
+            )
+            inquiry.pack_snapshot = pack_snapshot(pack)
+            inquiry.save()
+            coverage = inquiry.pack_snapshot.get("coverage_pct")
+            extra = f" Pack snapshot saved ({coverage}% coverage)." if coverage is not None else ""
             messages.success(
                 request,
-                f"Request saved for {inquiry.company_name}. A {inquiry.fleet_size}-bike {inquiry.get_use_case_display().lower()} fleet in {inquiry.city}.",
+                f"Request saved for {inquiry.company_name}. A {inquiry.fleet_size}-bike "
+                f"{inquiry.get_use_case_display().lower()} fleet in {inquiry.city}.{extra}",
             )
             return redirect("fleets")
     else:

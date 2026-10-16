@@ -1,37 +1,122 @@
-{% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Create listing</title>
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
-  <div class="container">
-    <h1>Create listing</h1>
-    <form method="post" enctype="multipart/form-data" id="listing-form">
+{% extends "base.html" %}
+{% load price_tags %}
+
+{% block title %}Create listing — MotorMarket{% endblock %}
+
+{% block content %}
+<section class="create-layout">
+  <div>
+    <p class="eyebrow">Sell a bike</p>
+    <h2>Create listing</h2>
+    <p class="meta">Fill the bike details, then check the model fair value before you lock the ask.</p>
+    <form method="post" enctype="multipart/form-data" id="listing-form" class="create-form">
       {% csrf_token %}
       {{ form.as_p }}
-      <div id="preview" style="margin:12px 0"></div>
-      <button class="btn" type="submit">Create</button>
+      <div id="preview" class="create-preview"></div>
+      <button class="btn" type="submit">Create listing</button>
     </form>
-    <script>
-      const fileInput = document.querySelector('input[type=file]');
-      const preview = document.getElementById('preview');
-      if (fileInput) {
-        fileInput.addEventListener('change', e => {
-          preview.innerHTML = '';
-          const file = e.target.files[0];
-          if (!file) return;
-          const img = document.createElement('img');
-          img.style.maxWidth = '320px';
-          img.style.borderRadius = '8px';
-          img.src = URL.createObjectURL(file);
-          preview.appendChild(img);
-        });
-      }
-    </script>
   </div>
-</body>
-</html>
+
+  <aside class="card suggest-panel" id="suggest-panel">
+    <p class="eyebrow">Price model</p>
+    <h3>Suggested ask</h3>
+    <p class="meta">Uses the same sold-price model as deal badges. Train locally if this stays empty.</p>
+    <p class="stat-value" id="suggest-fair">
+      {% if suggestion %}{{ suggestion.predicted_price|currency_idr }}{% else %}—{% endif %}
+    </p>
+    <p class="meta" id="suggest-deal">
+      {% if suggestion and suggestion.deal_label %}
+        Your ask vs fair: {{ suggestion.deal_label|deal_name }}
+        {% if suggestion.deal_score != None %} ({{ suggestion.deal_score }}%){% endif %}
+      {% else %}
+        Enter make, model, year, km, condition, and city — fair value updates live.
+      {% endif %}
+    </p>
+    <button type="button" class="btn" id="suggest-refresh">Refresh fair value</button>
+    <button type="button" class="btn btn-secondary" id="suggest-apply" {% if not suggestion %}disabled{% endif %}>Use fair value as ask</button>
+  </aside>
+</section>
+
+<script>
+(function () {
+  const form = document.getElementById('listing-form');
+  const fairEl = document.getElementById('suggest-fair');
+  const dealEl = document.getElementById('suggest-deal');
+  const applyBtn = document.getElementById('suggest-apply');
+  const refreshBtn = document.getElementById('suggest-refresh');
+  const askInput = form.querySelector('[name=start_price]');
+  let lastFair = {% if suggestion %}{{ suggestion.predicted_price }}{% else %}null{% endif %};
+
+  function formatIdr(n) {
+    return 'Rp ' + Math.round(n).toLocaleString('id-ID').replace(/,/g, '.');
+  }
+
+  function collect() {
+    const fd = new FormData(form);
+    const params = new URLSearchParams();
+    ['make', 'model_name', 'year', 'mileage_km', 'engine_cc', 'condition', 'city', 'owners_count', 'transmission', 'start_price'].forEach((k) => {
+      const v = fd.get(k);
+      if (v !== null && String(v).trim() !== '') params.set(k, v);
+    });
+    return params;
+  }
+
+  async function refresh() {
+    const params = collect();
+    if (!params.get('make') || !params.get('model_name') || !params.get('year') || !params.get('mileage_km') || !params.get('condition') || !params.get('city')) {
+      dealEl.textContent = 'Enter make, model, year, km, condition, and city — fair value updates live.';
+      return;
+    }
+    dealEl.textContent = 'Checking model…';
+    try {
+      const res = await fetch('{% url "suggest_ask" %}?' + params.toString(), { headers: { 'Accept': 'application/json' } });
+      const data = await res.json();
+      if (!res.ok) {
+        fairEl.textContent = '—';
+        dealEl.textContent = data.detail || 'Fair value unavailable.';
+        applyBtn.disabled = true;
+        return;
+      }
+      lastFair = data.predicted_price;
+      fairEl.textContent = formatIdr(data.predicted_price);
+      if (data.deal_label) {
+        dealEl.textContent = 'Your ask vs fair: ' + data.deal_label.replace('_', ' ') + ' (' + data.deal_score + '%)';
+      } else {
+        dealEl.textContent = 'Model fair value ready — set your ask, or use the button below.';
+      }
+      applyBtn.disabled = false;
+    } catch (err) {
+      dealEl.textContent = 'Could not reach the price model.';
+      applyBtn.disabled = true;
+    }
+  }
+
+  refreshBtn.addEventListener('click', refresh);
+  applyBtn.addEventListener('click', function () {
+    if (lastFair && askInput) {
+      askInput.value = Math.round(lastFair);
+      refresh();
+    }
+  });
+
+  ['change', 'blur'].forEach((evt) => {
+    form.addEventListener(evt, (e) => {
+      if (e.target && e.target.name) refresh();
+    });
+  });
+
+  const fileInput = form.querySelector('input[type=file]');
+  const preview = document.getElementById('preview');
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      preview.innerHTML = '';
+      const file = e.target.files[0];
+      if (!file) return;
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      preview.appendChild(img);
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -64,8 +64,9 @@ Model documentation: `artifacts/reports/MODEL_CARD.md`.
 **Data-science product surfaces**
 
 - Listing fair value + deal badges (price model)
-- Listing trust score on detail pages (`ml/trust.py`)
-- Fleet pack recommendations + city demand index (`market/services/fleet_intel.py`)
+- Listing trust score persisted on score (`ListingPrediction.trust_*`); filter listings with `?trust=caution`
+- Seller suggested ask on create (`/market/suggest-ask/`, create page panel)
+- Fleet pack recommendations + city demand index; inquiries store `pack_snapshot` JSON
 - API: `GET /api/motorcycles/<id>/trust/`, `GET /api/fleets/pack/?program=delivery&size=25`, `GET /api/fleets/coverage/`
 
 ## Environment variables
