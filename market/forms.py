@@ -86,6 +86,34 @@ class MotorcycleForm(forms.ModelForm):
             "seller_wa": "Sama — tidak publik sampai unlock.",
         }
 
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        optional = [
+            "condition_grade",
+            "known_flaws",
+            "has_reserve",
+            "reserve_price",
+            "buy_now_price",
+            "ends_at",
+            "is_dealer",
+            "checklist_front",
+            "checklist_side",
+            "checklist_odometer",
+            "checklist_engine",
+            "checklist_surat",
+            "ppi_available",
+            "ppi_notes",
+            "tax_valid_through",
+            "plate_number",
+            "seller_phone",
+            "seller_wa",
+            "image",
+        ]
+        for name in optional:
+            if name in self.fields:
+                self.fields[name].required = False
+
     def clean_title(self):
         result = scrub_public_text(self.cleaned_data.get("title") or "")
         return result.text
