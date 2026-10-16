@@ -1,8 +1,8 @@
-# MotorMarket
+# NegoMotor (repo: motormarket)
 
-Online bidding platform for used motorcycles (Indonesia). Django backend with server-rendered listings, realtime bids (Channels), REST API, and a tabular ML pipeline for sold-price estimates.
+**NegoMotor** — jual-beli & lelang motor bekas di Indonesia. Django backend with server-rendered listings, realtime bids (Channels), REST API, and a tabular ML pipeline for sold-price estimates. Django package paths remain `motormarket/` / `market/`.
 
-**Portfolio highlights:** Django + Channels, image uploads/thumbnails, sklearn price intelligence, Docker Compose (Postgres + Redis), optional React scaffold under `frontend/`.
+**Portfolio highlights:** Django + Channels, image uploads/thumbnails, sklearn price intelligence, surat/trust checks, fleet packs, Docker Compose (Postgres + Redis), optional React scaffold under `frontend/`.
 
 ## Architecture
 
@@ -61,12 +61,37 @@ python manage.py score_listings       # scores listings from the model
 
 Model documentation: `artifacts/reports/MODEL_CARD.md`.
 
-**Data-science product surfaces**
+**Product surfaces (Indonesia fit)**
 
+- Bahasa-first chrome: Lelang / Jual / Armada, estimasi harga, Matic / Bensin
 - Listing fair value + deal badges (price model)
-- Listing trust score on detail pages (`ml/trust.py`)
-- Fleet pack recommendations + city demand index (`market/services/fleet_intel.py`)
-- API: `GET /api/motorcycles/<id>/trust/`, `GET /api/fleets/pack/?program=delivery&size=25`, `GET /api/fleets/coverage/`
+- Listing trust score persisted on score (`ListingPrediction.trust_*`); filter listings with `?trust=caution`
+- Market anomaly / **waspada** from peer bands + catalog (`ListingPrediction.anomaly_*`); filter `?anomaly=waspada`
+- Seller suggested ask on create (`/market/suggest-ask/`, create page panel)
+- Fleet pack recommendations + city demand index; inquiries store `pack_snapshot` JSON
+- Surat checklist (STNK / BPKB / pajak / plat) + trust score on detail (`ml/trust.py`)
+- Deal sheet: meetup + cash/transfer/cicilan intent (no payment gateway)
+- Bids must beat current highest
+- Bebek segment in `ml/catalog.py` (Supra X, Revo, Jupiter, Vega, Smash…)
+- Fleet packs: `exclude_caution` + `ojol_ready` filters
+- Market anomaly / waspada badges on score (`ListingPrediction.anomaly_*`)
+- Indo auction mashup: soft close, proxy bid, watchlist, grade A/B/C, Buy Now
+- Dual deal ratings (as seller / as buyer) after `ClosedDeal`; listing text sentiment (`ml/sentiment.py`)
+- API: `GET /api/motorcycles/<id>/trust/`, `.../anomaly/`, `GET /api/fleets/pack/?program=delivery&size=25&exclude_caution=1&ojol_ready=1`, `GET /api/fleets/coverage/`
+
+**How to verify**
+
+```bash
+python manage.py migrate
+python manage.py seed_market
+python manage.py runserver
+# Detail: /market/motorcycle/<id>/ — skor kepercayaan + chip surat + lembar deal
+# Fleets: /market/fleets/?program=ride_hailing&exclude_caution=1&ojol_ready=1#pack
+# Fee unlock: chat → Bayar biaya platform (simulated) → kontak terbuka; /market/terms/
+python manage.py test market.tests
+```
+
+Platform fee knobs (see `.env.example`): `PLATFORM_FEE_RATE`, `PLATFORM_FEE_MIN_IDR`, `PLATFORM_FEE_MAX_IDR`.
 
 ## Environment variables
 

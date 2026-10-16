@@ -1,86 +1,112 @@
 {% extends "base.html" %}
 {% load thumb_tags %}
-{% load humanize %}
 {% load price_tags %}
 
-{% block title %}Auctions — MotorMarket{% endblock %}
+{% block title %}Lelang — NegoMotor{% endblock %}
 
 {% block content %}
-<header class="page-header">
-  <h1>Live auctions</h1>
-  <p class="tagline">Browse motorcycles for sale — filter by make, city, year, or keyword</p>
-</header>
-
-<section class="filters" aria-label="Filter listings">
+<section class="filters">
   <form method="get" class="filters-form">
-    <input type="search" name="q" placeholder="Search make, model, city" value="{{ request.GET.q }}">
-    {% if makes %}
+    <input type="search" name="q" placeholder="Cari merek, tipe, kota" value="{{ request.GET.q }}">
     <select name="make">
-      <option value="">All makes</option>
+      <option value="">Semua merek</option>
       {% for make in makes %}
       <option value="{{ make }}" {% if request.GET.make == make %}selected{% endif %}>{{ make }}</option>
       {% endfor %}
     </select>
-    {% else %}
-    <input type="text" name="make" placeholder="Make" value="{{ request.GET.make }}">
-    {% endif %}
-    {% if cities %}
     <select name="city">
-      <option value="">All cities</option>
+      <option value="">Semua kota</option>
       {% for city in cities %}
       <option value="{{ city }}" {% if request.GET.city == city %}selected{% endif %}>{{ city }}</option>
       {% endfor %}
     </select>
-    {% endif %}
-    <input type="number" name="year" placeholder="Year" value="{{ request.GET.year }}">
+    <select name="deal">
+      <option value="">Semua deal</option>
+      <option value="great_deal" {% if request.GET.deal == 'great_deal' %}selected{% endif %}>Sangat murah</option>
+      <option value="good_deal" {% if request.GET.deal == 'good_deal' %}selected{% endif %}>Murah</option>
+      <option value="fair" {% if request.GET.deal == 'fair' %}selected{% endif %}>Wajar</option>
+      <option value="rich" {% if request.GET.deal == 'rich' %}selected{% endif %}>Sedikit mahal</option>
+      <option value="overpriced" {% if request.GET.deal == 'overpriced' %}selected{% endif %}>Mahal</option>
+    </select>
+    <select name="trust">
+      <option value="">Semua trust</option>
+      <option value="high_trust" {% if request.GET.trust == 'high_trust' %}selected{% endif %}>High trust</option>
+      <option value="review" {% if request.GET.trust == 'review' %}selected{% endif %}>Review</option>
+      <option value="caution" {% if request.GET.trust == 'caution' %}selected{% endif %}>Caution</option>
+    </select>
+    <select name="surat">
+      <option value="">Semua surat</option>
+      <option value="lengkap" {% if request.GET.surat == 'lengkap' %}selected{% endif %}>Surat lengkap</option>
+    </select>
+    <select name="grade">
+      <option value="">Semua grade</option>
+      <option value="A" {% if request.GET.grade == 'A' %}selected{% endif %}>Grade A</option>
+      <option value="B" {% if request.GET.grade == 'B' %}selected{% endif %}>Grade B</option>
+      <option value="C" {% if request.GET.grade == 'C' %}selected{% endif %}>Grade C</option>
+    </select>
+    <select name="dealer">
+      <option value="">Dealer / C2C</option>
+      <option value="1" {% if request.GET.dealer == '1' %}selected{% endif %}>Dealer</option>
+      <option value="0" {% if request.GET.dealer == '0' %}selected{% endif %}>C2C</option>
+    </select>
+    <select name="anomaly">
+      <option value="">Semua pasar</option>
+      <option value="ok" {% if request.GET.anomaly == 'ok' %}selected{% endif %}>OK pasar</option>
+      <option value="waspada" {% if request.GET.anomaly == 'waspada' %}selected{% endif %}>Waspada</option>
+      <option value="waspada_tinggi" {% if request.GET.anomaly == 'waspada_tinggi' %}selected{% endif %}>Waspada tinggi</option>
+    </select>
+    <input type="number" name="year" placeholder="Tahun" value="{{ request.GET.year }}">
     <select name="sort">
-      <option value="">Newest</option>
-      <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
-      <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
-      <option value="deal" {% if request.GET.sort == 'deal' %}selected{% endif %}>Best deal</option>
+      <option value="">Terbaru</option>
+      <option value="deal" {% if request.GET.sort == 'deal' %}selected{% endif %}>Deal terbaik</option>
+      <option value="trust" {% if request.GET.sort == 'trust' %}selected{% endif %}>Trust tertinggi</option>
+      <option value="anomaly" {% if request.GET.sort == 'anomaly' %}selected{% endif %}>Paling anomali</option>
+      <option value="ending" {% if request.GET.sort == 'ending' %}selected{% endif %}>Segera berakhir</option>
+      <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Harga ↑</option>
+      <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Harga ↓</option>
     </select>
     <button class="btn" type="submit">Filter</button>
   </form>
 </section>
 
-<main>
-  <section class="grid">
-    {% for m in motorcycles %}
-    <article class="card">
-      {% listing_photo m as photo %}
-      <a class="card-media" href="{% url 'motorcycle_detail' m.pk %}">
-        <img src="{{ photo }}" alt="{{ m.title }}">
-      </a>
-      <div class="card-body">
-        {% if m.prediction %}
-        <span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>
-        {% endif %}
-        <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>
-        <p class="meta meta-dense">
-          {% if m.year %}{{ m.year }}{% endif %}
-          {% if m.make %} · {{ m.make }}{% if m.model_name %} {{ m.model_name }}{% endif %}{% endif %}
-          {% if m.mileage_km %} · {{ m.mileage_km|intcomma }} km{% endif %}
-          {% if m.city %} · {{ m.city }}{% endif %}
-        </p>
-        <p class="price"><span class="price-label">Starting bid</span>{{ m.start_price|currency_idr }}</p>
-        <a class="btn" href="{% url 'motorcycle_detail' m.pk %}">View &amp; bid</a>
-      </div>
-    </article>
-    {% empty %}
-    <p class="empty-state">No motorcycles match these filters.</p>
-    {% endfor %}
-  </section>
+<section class="grid">
+  {% for m in motorcycles %}
+  <article class="card">
+    {% listing_photo m as photo %}
+    <img src="{{ photo }}" alt="{{ m.title }}">
+    {% if m.prediction %}
+    <span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>
+    {% if m.prediction.trust_label %}
+    <span class="badge trust-{{ m.prediction.trust_label }}">{{ m.prediction.trust_label|trust_name }}</span>
+    {% endif %}
+    {% if m.prediction.anomaly_label and m.prediction.anomaly_label != 'ok' %}
+    <span class="badge anomaly-{{ m.prediction.anomaly_label }}">{{ m.prediction.anomaly_label|anomaly_name }}</span>
+    {% endif %}
+    {% if m.condition_grade %}<span class="badge">Grade {{ m.condition_grade }}</span>{% endif %}
+    {% if not m.has_reserve %}<span class="badge">Tanpa reserve</span>{% endif %}
+    {% if m.is_dealer %}<span class="badge">Dealer</span>{% else %}<span class="badge">C2C</span>{% endif %}
+    {% endif %}
+    <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>
+    <p class="meta">{{ m.make }} {{ m.model_name }} · {{ m.city }} · {{ m.mileage_km|default:0 }} km</p>
+    <p class="price">{{ m.start_price|currency_idr }}</p>
+    {% if m.prediction %}
+    <p class="meta">Estimasi {{ m.prediction.predicted_price|currency_idr }}</p>
+    {% endif %}
+    {% if m.surat_lengkap %}<p class="meta">Surat lengkap</p>{% endif %}
+    <a class="btn" href="{% url 'motorcycle_detail' m.pk %}">Lihat &amp; tawar</a>
+  </article>
+  {% empty %}
+  <p>Tidak ada motor yang cocok dengan filter ini.</p>
+  {% endfor %}
+</section>
 
-  {% if motorcycles.paginator.num_pages > 1 %}
-  <div class="pagination">
-    {% if motorcycles.has_previous %}
-      <a href="?page={{ motorcycles.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.make %}&make={{ request.GET.make }}{% endif %}{% if request.GET.city %}&city={{ request.GET.city }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="btn">Prev</a>
-    {% endif %}
-    <span>Page {{ motorcycles.number }} of {{ motorcycles.paginator.num_pages }}</span>
-    {% if motorcycles.has_next %}
-      <a href="?page={{ motorcycles.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.make %}&make={{ request.GET.make }}{% endif %}{% if request.GET.city %}&city={{ request.GET.city }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="btn">Next</a>
-    {% endif %}
-  </div>
+<div class="pagination">
+  {% if motorcycles.has_previous %}
+  <a href="?{% querystring request page=motorcycles.previous_page_number %}" class="btn">Sebelumnya</a>
   {% endif %}
-</main>
+  <span>Halaman {{ motorcycles.number }} dari {{ motorcycles.paginator.num_pages }}</span>
+  {% if motorcycles.has_next %}
+  <a href="?{% querystring request page=motorcycles.next_page_number %}" class="btn">Berikutnya</a>
+  {% endif %}
+</div>
 {% endblock %}

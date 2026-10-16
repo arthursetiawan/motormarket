@@ -147,6 +147,12 @@ LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
 ACCOUNT_LOGOUT_REDIRECT = '/'
 
+# NegoMotor auction mashup (BaT-lite soft close / proxy)
+AUCTION_MIN_INCREMENT_IDR = os.environ.get('AUCTION_MIN_INCREMENT_IDR', '50000')
+AUCTION_SOFT_CLOSE_MINUTES = int(os.environ.get('AUCTION_SOFT_CLOSE_MINUTES', '2'))
+AUCTION_SOFT_CLOSE_EXTEND_MINUTES = int(os.environ.get('AUCTION_SOFT_CLOSE_EXTEND_MINUTES', '2'))
+AUCTION_MIN_CHECKLIST = int(os.environ.get('AUCTION_MIN_CHECKLIST', '3'))
+
 # REST framework defaults
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
@@ -156,4 +162,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 12,
 }
 
-# Update runserver command suggestion to daphne in README later
+# NegoMotor platform fee (buyer success fee) — tweak via env without code changes
+PLATFORM_FEE_RATE = os.environ.get("PLATFORM_FEE_RATE", "0.03")
+PLATFORM_FEE_MIN_IDR = os.environ.get("PLATFORM_FEE_MIN_IDR", "150000")
+PLATFORM_FEE_MAX_IDR = os.environ.get("PLATFORM_FEE_MAX_IDR", "2500000")
+PLATFORM_FEE_SIMULATED = bool(int(os.environ.get("PLATFORM_FEE_SIMULATED", "1")))

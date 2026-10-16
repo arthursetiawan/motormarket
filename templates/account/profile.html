@@ -1,24 +1,86 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load price_tags %}
 
-{% block title %}{{ profile_user.username }} — MotorMarket{% endblock %}
+{% block title %}{{ profile_user.username }} — NegoMotor{% endblock %}
 
 {% block content %}
+<p class="meta"><a href="{% url 'index' %}">Iklan</a> · Profil</p>
 <div class="profile-panel">
   <h1>{{ profile_user.username }}</h1>
+  {% if is_own_profile and profile_user.email %}
   <p class="meta">Email: {{ profile_user.email }}</p>
+  {% endif %}
 
-  <h3 style="margin-top:24px; text-transform:uppercase; font-family:var(--font-display);">Your listings</h3>
-  <ul class="listing-list">
+  <section class="reputation-grid card desk">
+    <h2>Reputasi NegoMotor</h2>
+    <p class="meta">Rating terpisah sebagai penjual dan pembeli — hanya setelah deal ditutup di platform.</p>
+    <div class="stat-row">
+      <article>
+        <p class="meta">Sebagai penjual</p>
+        <p class="stat-value">{% if reputation.as_seller.count %}{{ reputation.as_seller.average|stars }}{% else %}—{% endif %}</p>
+        <p class="meta">{{ reputation.as_seller.display }}</p>
+      </article>
+      <article>
+        <p class="meta">Sebagai pembeli</p>
+        <p class="stat-value">{% if reputation.as_buyer.count %}{{ reputation.as_buyer.average|stars }}{% else %}—{% endif %}</p>
+        <p class="meta">{{ reputation.as_buyer.display }}</p>
+      </article>
+      <article>
+        <p class="meta">Sentimen iklan (agregat)</p>
+        <p class="stat-value">{% if seller_sentiment.count %}{{ seller_sentiment.average|floatformat:0 }}/100{% else %}—{% endif %}</p>
+        <p class="meta">{{ seller_sentiment.display }}</p>
+        <p class="muted small">Skor teks deskripsi — bukan pengganti bintang.</p>
+      </article>
+    </div>
+  </section>
+
+  {% if is_own_profile and pending_ratings %}
+  <section class="card desk">
+    <h3>Menunggu rating Anda</h3>
+    <ul class="plain">
+      {% for deal in pending_ratings %}
+      <li>
+        {{ deal.motorcycle.title }} · lawan:
+        {% if deal.buyer_id == profile_user.id %}{{ deal.seller.username }}{% else %}{{ deal.buyer.username }}{% endif %}
+        · <a href="{% url 'rate_deal' deal.pk %}">Beri rating</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if received_ratings %}
+  <section class="card desk">
+    <h3>Ulasan terbaru</h3>
+    <ul class="plain rating-list">
+      {% for r in received_ratings %}
+      <li>
+        <strong>{{ r.score|stars }}</strong>
+        <span class="meta">{{ r.get_ratee_role_display }} · dari {{ r.rater.username }}</span>
+        {% if r.review %}<p>{{ r.review }}</p>{% endif %}
+        <p class="meta">{{ r.deal.motorcycle.title }} · {{ r.created_at|date:"j M Y" }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <h3>{% if is_own_profile %}Iklan Anda{% else %}Iklan penjual{% endif %}</h3>
+  <ul class="plain">
     {% for m in listings %}
     <li>
       <a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a>
-      <span class="price" style="font-size:1.1rem; margin:0">Rp {{ m.start_price|intcomma }}</span>
+      — {{ m.start_price|currency_idr }}
+      {% if m.sentiment %}
+      <span class="badge sentiment-{{ m.sentiment.label }}">{{ m.sentiment.label|sentiment_name }}</span>
+      {% endif %}
     </li>
     {% empty %}
-    <li class="muted">No listings yet.</li>
+    <li>Belum ada iklan.</li>
     {% endfor %}
   </ul>
-  <a class="btn" href="{% url 'create_listing' %}">Create listing</a>
+  {% if is_own_profile %}
+  <p><a class="btn" href="{% url 'create_listing' %}">Buat iklan</a></p>
+  {% endif %}
 </div>
 {% endblock %}

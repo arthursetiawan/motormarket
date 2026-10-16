@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from market.models import Bid, Motorcycle
+from market.services.anomaly import listing_anomaly
 from market.services.fleet_intel import market_coverage, recommend_pack
 from market.services.pricing import listing_to_record
 from market.services.trust import listing_trust
@@ -56,6 +57,12 @@ class MotorcycleViewSet(viewsets.ModelViewSet):
     def trust(self, request, pk=None):
         bike = self.get_object()
         report = listing_trust(bike)
+        return Response({"motorcycle_id": bike.pk, **report.to_dict()})
+
+    @action(detail=True, methods=["get"])
+    def anomaly(self, request, pk=None):
+        bike = self.get_object()
+        report = listing_anomaly(bike)
         return Response({"motorcycle_id": bike.pk, **report.to_dict()})
 
 
@@ -118,11 +125,29 @@ class FleetPackView(APIView):
         program = request.query_params.get("program", "delivery")
         size = request.query_params.get("size", "10")
         city = request.query_params.get("city") or None
+        exclude_caution = request.query_params.get("exclude_caution", "").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        ojol_ready = request.query_params.get("ojol_ready", "").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
         try:
             size_i = int(size)
         except (TypeError, ValueError):
             return Response({"detail": "size must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
-        pack = recommend_pack(program, size=size_i, preferred_city=city)
+        pack = recommend_pack(
+            program,
+            size=size_i,
+            preferred_city=city,
+            exclude_caution=exclude_caution,
+            ojol_ready=ojol_ready,
+        )
         if pack is None:
             return Response({"detail": "unknown program"}, status=status.HTTP_404_NOT_FOUND)
         # JSON-safe: drop nested program image path noise already present

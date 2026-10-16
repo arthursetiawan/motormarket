@@ -20,6 +20,7 @@ class BikeSpec(TypedDict):
 
 
 CATALOG: list[BikeSpec] = [
+    # Matic (scooters) — volume Indonesia
     {"make": "Honda", "model_name": "BeAT", "engine_cc": 110, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 18500000, "segment": "scooter"},
     {"make": "Honda", "model_name": "Vario 125", "engine_cc": 125, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 22500000, "segment": "scooter"},
     {"make": "Honda", "model_name": "Vario 160", "engine_cc": 160, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 27000000, "segment": "scooter"},
@@ -27,18 +28,25 @@ CATALOG: list[BikeSpec] = [
     {"make": "Honda", "model_name": "ADV 160", "engine_cc": 160, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 36500000, "segment": "adventure_scooter"},
     {"make": "Honda", "model_name": "CBR150R", "engine_cc": 150, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 38000000, "segment": "sport"},
     {"make": "Honda", "model_name": "CB150R", "engine_cc": 150, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 34000000, "segment": "naked"},
+    # Bebek / underbone — daerah & budget volume
+    {"make": "Honda", "model_name": "Supra X 125", "engine_cc": 125, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 19500000, "segment": "bebek"},
+    {"make": "Honda", "model_name": "Revo Absolute", "engine_cc": 110, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 16500000, "segment": "bebek"},
+    {"make": "Honda", "model_name": "Blade 125", "engine_cc": 125, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 18500000, "segment": "bebek"},
     {"make": "Yamaha", "model_name": "NMAX", "engine_cc": 155, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 31500000, "segment": "premium_scooter"},
     {"make": "Yamaha", "model_name": "Aerox 155", "engine_cc": 155, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 28500000, "segment": "sport_scooter"},
     {"make": "Yamaha", "model_name": "Fazzio", "engine_cc": 125, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 22500000, "segment": "scooter"},
     {"make": "Yamaha", "model_name": "XMAX", "engine_cc": 250, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 67000000, "segment": "maxiscooter"},
     {"make": "Yamaha", "model_name": "R15", "engine_cc": 155, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 40000000, "segment": "sport"},
     {"make": "Yamaha", "model_name": "MT-15", "engine_cc": 155, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 38000000, "segment": "naked"},
+    {"make": "Yamaha", "model_name": "Jupiter Z1", "engine_cc": 115, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 17500000, "segment": "bebek"},
+    {"make": "Yamaha", "model_name": "Vega Force", "engine_cc": 115, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 16800000, "segment": "bebek"},
     {"make": "Kawasaki", "model_name": "Ninja 250", "engine_cc": 249, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 78000000, "segment": "sport"},
     {"make": "Kawasaki", "model_name": "Ninja ZX-25R", "engine_cc": 250, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 115000000, "segment": "supersport"},
     {"make": "Kawasaki", "model_name": "W175", "engine_cc": 177, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 35000000, "segment": "retro"},
     {"make": "Suzuki", "model_name": "Nex II", "engine_cc": 113, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 16500000, "segment": "scooter"},
     {"make": "Suzuki", "model_name": "Address", "engine_cc": 113, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 18500000, "segment": "scooter"},
     {"make": "Suzuki", "model_name": "GSX-R150", "engine_cc": 150, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 33000000, "segment": "sport"},
+    {"make": "Suzuki", "model_name": "Smash Fi", "engine_cc": 113, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 15800000, "segment": "bebek"},
     {"make": "Vespa", "model_name": "Sprint 150", "engine_cc": 150, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 48000000, "segment": "premium_scooter"},
     {"make": "Vespa", "model_name": "Primavera 150", "engine_cc": 150, "fuel_type": "petrol", "transmission": "automatic", "msrp_idr": 50000000, "segment": "premium_scooter"},
     {"make": "BMW", "model_name": "G 310 R", "engine_cc": 313, "fuel_type": "petrol", "transmission": "manual", "msrp_idr": 145000000, "segment": "naked"},

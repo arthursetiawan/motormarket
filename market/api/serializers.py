@@ -7,7 +7,23 @@ from market.models import Bid, ListingPrediction, Motorcycle
 class ListingPredictionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ListingPrediction
-        fields = ["predicted_price", "deal_score", "deal_label", "model_version", "scored_at"]
+        fields = [
+            "predicted_price",
+            "deal_score",
+            "deal_label",
+            "model_version",
+            "scored_at",
+            "trust_score",
+            "trust_label",
+            "trust_flags",
+            "trust_completeness",
+            "anomaly_score",
+            "anomaly_label",
+            "anomaly_flags",
+            "anomaly_confidence",
+            "anomaly_peer_n",
+            "anomaly_peer_source",
+        ]
 
 
 class MotorcycleSerializer(serializers.ModelSerializer):

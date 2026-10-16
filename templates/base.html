@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}MotorMarket{% endblock %}</title>
+  <title>{% block title %}NegoMotor{% endblock %}</title>
   {% load static %}
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   {% block extra_head %}{% endblock %}
@@ -13,20 +13,23 @@
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="{% url 'home' %}">
-          <span class="brand-mark">Motor<span>Market</span></span>
-          <span class="brand-tag">Motorcycle auctions</span>
+          <span class="brand-mark">Nego<span>Motor</span></span>
+          <span class="brand-tag">Jual-beli &amp; lelang motor</span>
         </a>
-        <nav class="site-nav" aria-label="Main">
-          <a href="{% url 'index' %}">Auctions</a>
-          <a href="{% url 'insights' %}">Insights</a>
-          <a href="{% url 'fleets' %}">Fleets</a>
+        <nav class="site-nav" aria-label="Utama">
+          <a href="{% url 'index' %}">Lelang</a>
+          <a href="{% url 'sold_archive' %}">Terjual</a>
+          <a href="{% url 'insights' %}">Insight</a>
+          <a href="{% url 'fleets' %}">Armada</a>
           {% if user.is_authenticated %}
-            <a href="{% url 'profile' %}">Profile</a>
-            <a href="{% url 'create_listing' %}">Sell</a>
-            <a href="{% url 'account_logout' %}">Log out</a>
+            <a href="{% url 'profile' %}">Profil</a>
+          <a href="{% url 'watchlist' %}">Watchlist</a>
+          <a href="{% url 'notifications' %}">Notifikasi</a>
+            <a href="{% url 'create_listing' %}">Jual</a>
+            <a href="{% url 'account_logout' %}">Keluar</a>
           {% else %}
-            <a href="{% url 'account_login' %}">Log in</a>
-            <a class="nav-cta" href="{% url 'account_signup' %}">Sign up</a>
+            <a href="{% url 'account_login' %}">Masuk</a>
+            <a class="nav-cta" href="{% url 'account_signup' %}">Daftar</a>
           {% endif %}
         </nav>
       </div>
@@ -54,7 +57,8 @@
 
     <footer class="site-footer">
       <div class="container">
-        <p>&copy; MotorMarket — Buy &amp; bid motorcycles across Indonesia</p>
+        <p>&copy; NegoMotor — Jual-beli, lelang, dan nego motor di Indonesia ·
+          <a href="{% url 'terms' %}">Ketentuan &amp; anti-bypass</a></p>
       </div>
     </footer>
   </div>

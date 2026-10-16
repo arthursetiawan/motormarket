@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load price_tags %}
+
+{% block title %}Beri rating — NegoMotor{% endblock %}
+
+{% block content %}
+<p class="meta"><a href="{% url 'motorcycle_detail' deal.motorcycle_id %}">Kembali ke iklan</a></p>
+<h2>Beri rating setelah deal</h2>
+<p class="meta">
+  {{ deal.motorcycle.title }} ·
+  {% if ratee_role == "seller" %}Anda menilai <strong>penjual</strong> {{ deal.seller.username }}{% else %}Anda menilai <strong>pembeli</strong> {{ deal.buyer.username }}{% endif %}
+</p>
+<p>Hanya satu rating per pihak per transaksi yang sudah ditutup di NegoMotor.</p>
+
+<form method="post" class="card desk rate-form">
+  {% csrf_token %}
+  {% for field in form %}
+  <p>
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
+    {{ field }}
+    {% if field.errors %}<span class="field-error">{{ field.errors|striptags }}</span>{% endif %}
+  </p>
+  {% endfor %}
+  <button type="submit" class="btn">Kirim rating</button>
+</form>
+{% endblock %}

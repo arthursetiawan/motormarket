@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Ketentuan — NegoMotor{% endblock %}
+
+{% block content %}
+<section class="terms-panel">
+  <h1>Ketentuan singkat NegoMotor</h1>
+  <p class="meta">Cuplikan anti-bypass &amp; biaya platform (MVP). Bukan nasihat hukum.</p>
+
+  <h2>1. Listing gratis, biaya di pembeli</h2>
+  <p>Penjual memasang listing tanpa biaya. Pembeli membayar <strong>biaya platform / sukses</strong>
+    (default ~3% dari harga atau tawaran tertinggi, dengan batas minimum &amp; maksimum rupiah)
+    untuk membuka kontak penjual dan lokasi temu exact.</p>
+
+  <h2>2. Tidak ada kontak publik</h2>
+  <p>Nomor HP, WhatsApp, Instagram, atau ajakan “TPM / chat WA” tidak boleh di judul atau deskripsi.
+    Sistem menghapus / menyensor pola tersebut. Kontak rahasia penjual hanya muncul setelah biaya lunas.</p>
+
+  <h2>3. Chat hanya di NegoMotor sampai unlock</h2>
+  <p>Negosiasi awal lewat chat dalam aplikasi. Membagikan nomor di chat dapat diblokir dan dilaporkan.</p>
+
+  <h2>4. Deal di platform vs di luar app</h2>
+  <ul>
+    <li><strong>Deal di NegoMotor</strong> — ada jejak fee &amp; status; perlindungan proses platform.</li>
+    <li><strong>Deal di luar app</strong> — tanpa perlindungan NegoMotor; dapat ditandai dan ditinjau.</li>
+  </ul>
+
+  <h2>5. Bypass</h2>
+  <p>Menghindari biaya dengan pindah ke WA / telepon sebelum unlock dapat berujung peringatan,
+    pemblokiran unlock kontak, atau penangguhan akun (admin).</p>
+
+  <h2>6. Pembayaran</h2>
+  <p>Checkout saat ini <strong>disimulasikan</strong> (“Bayar biaya platform” menandai lunas di database).
+    Integrasi Midtrans / Xendit menyusul — lihat dokumentasi proyek.</p>
+
+  <p><a class="btn" href="{% url 'index' %}">Kembali ke lelang</a></p>
+</section>
+{% endblock %}

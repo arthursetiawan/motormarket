@@ -5,17 +5,46 @@ from django import template
 register = template.Library()
 
 DEAL_NAMES = {
-    "great_deal": "Great deal",
-    "good_deal": "Good deal",
-    "fair": "Fair",
-    "rich": "Above market",
-    "overpriced": "Overpriced",
+    "great_deal": "Sangat murah",
+    "good_deal": "Murah",
+    "fair": "Wajar",
+    "rich": "Sedikit mahal",
+    "overpriced": "Mahal",
 }
 
 TRUST_NAMES = {
-    "high_trust": "High trust",
-    "review": "Review",
-    "caution": "Caution",
+    "high_trust": "Kepercayaan tinggi",
+    "review": "Perlu dicek",
+    "caution": "Waspada",
+}
+
+TRANS_NAMES = {
+    "automatic": "Matic",
+    "manual": "Manual",
+}
+
+FUEL_NAMES = {
+    "petrol": "Bensin",
+    "electric": "Listrik",
+}
+
+CONDITION_NAMES = {
+    "excellent": "Istimewa",
+    "good": "Baik",
+    "fair": "Cukup",
+    "poor": "Kurang",
+}
+
+SENTIMENT_NAMES = {
+    "professional": "Jelas & profesional",
+    "mixed": "Campuran",
+    "caution": "Agresif / spam",
+}
+
+ANOMALY_NAMES = {
+    "ok": "OK pasar",
+    "waspada": "Waspada",
+    "waspada_tinggi": "Waspada tinggi",
 }
 
 
@@ -39,6 +68,26 @@ def trust_name(value):
 
 
 @register.filter
+def trans_name(value):
+    return TRANS_NAMES.get(value, value or "")
+
+
+@register.filter
+def fuel_name(value):
+    return FUEL_NAMES.get(value, value or "")
+
+
+@register.filter
+def condition_name(value):
+    return CONDITION_NAMES.get(value, value or "")
+
+
+@register.filter
+def anomaly_name(value):
+    return ANOMALY_NAMES.get(value, value or "")
+
+
+@register.filter
 def abs_num(value):
     try:
         return abs(value)
@@ -55,3 +104,19 @@ def querystring(request, **overrides):
         else:
             params[key] = value
     return params.urlencode()
+
+
+@register.filter
+def sentiment_name(value):
+    return SENTIMENT_NAMES.get(value, value or "")
+
+
+@register.filter
+def stars(value):
+    """Render 1–5 score as ★/☆ string."""
+    try:
+        n = int(round(float(value)))
+    except (TypeError, ValueError):
+        return "—"
+    n = max(0, min(5, n))
+    return "★" * n + "☆" * (5 - n)
