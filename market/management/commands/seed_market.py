@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+import numpy as np
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
@@ -7,8 +8,48 @@ from market.models import Motorcycle
 from market.services.pricing import score_queryset
 from ml.generate import generate_live_listings
 from ml.paths import PRICE_MODEL_PATH
+from ml.plates import CITY_PLATE_PREFIXES
 from ml.score import clear_model_cache
 from ml.train import train_price_model
+
+
+def _surat_bundle(rng: np.random.Generator, city: str, idx: int) -> dict:
+    """Mostly lengkap papers; occasional risk cases for trust demos."""
+    prefixes = CITY_PLATE_PREFIXES.get(city.lower(), frozenset({"B"}))
+    prefix = sorted(prefixes)[0]
+    roll = float(rng.random())
+    if roll < 0.08:
+        return {
+            "stnk_status": "hilang",
+            "bpkb_status": "hilang",
+            "pajak_mati": True,
+            "tax_valid_through": 2023,
+            "plate_number": f"{prefix} {1000 + idx} XX",
+        }
+    if roll < 0.18:
+        return {
+            "stnk_status": "lengkap",
+            "bpkb_status": "di_leasing",
+            "pajak_mati": False,
+            "tax_valid_through": 2026,
+            "plate_number": f"{prefix} {1000 + idx} YY",
+        }
+    if roll < 0.22:
+        # Intentional plate≠city for trust flag demos
+        return {
+            "stnk_status": "lengkap",
+            "bpkb_status": "ada",
+            "pajak_mati": False,
+            "tax_valid_through": 2026,
+            "plate_number": f"DK {1000 + idx} ZZ",
+        }
+    return {
+        "stnk_status": "lengkap",
+        "bpkb_status": "ada",
+        "pajak_mati": False,
+        "tax_valid_through": 2026,
+        "plate_number": f"{prefix} {1000 + idx} AB",
+    }
 
 
 class Command(BaseCommand):
@@ -33,11 +74,13 @@ class Command(BaseCommand):
             seller.save()
 
         live = generate_live_listings(n=options["n"], seed=11)
+        rng = np.random.default_rng(11)
         created_n = 0
-        for row in live.to_dict(orient="records"):
+        for i, row in enumerate(live.to_dict(orient="records")):
             title = f"{row['year']} {row['make']} {row['model_name']}"
             if Motorcycle.objects.filter(title=title, mileage_km=int(row["mileage_km"])).exists():
                 continue
+            surat = _surat_bundle(rng, row["city"], i)
             Motorcycle.objects.create(
                 title=title,
                 description=(
@@ -58,6 +101,7 @@ class Command(BaseCommand):
                 fuel_type=row["fuel_type"],
                 transmission=row["transmission"],
                 owners_count=int(row["owners_count"]),
+                **surat,
             )
             created_n += 1
         scored = score_queryset()

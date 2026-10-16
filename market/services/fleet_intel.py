@@ -90,7 +90,12 @@ def recommend_pack(
     program_slug: str,
     size: int = 10,
     preferred_city: str | None = None,
+    *,
+    exclude_caution: bool = False,
+    ojol_ready: bool = False,
 ) -> dict | None:
+    from market.services.trust import listing_trust
+
     program = _program(program_slug)
     if program is None:
         return None
@@ -101,6 +106,14 @@ def recommend_pack(
         .select_related("prediction")
         .order_by("id")
     )
+    if ojol_ready:
+        book = book.filter(
+            transmission="automatic",
+            engine_cc__gte=125,
+            pajak_mati=False,
+            stnk_status="lengkap",
+            bpkb_status__in=["ada", "di_leasing"],
+        )
     if preferred_city:
         # Soft preference: score handles city boost; optional hard filter if enough supply
         city_book = book.filter(city__iexact=preferred_city)
@@ -110,6 +123,9 @@ def recommend_pack(
             candidates = list(book)
     else:
         candidates = list(book)
+
+    if exclude_caution:
+        candidates = [b for b in candidates if listing_trust(b).label != "caution"]
 
     ranked: list[PackUnit] = []
     for bike in candidates:
@@ -161,6 +177,8 @@ def recommend_pack(
         "program": program,
         "size": size,
         "preferred_city": preferred_city or "",
+        "exclude_caution": exclude_caution,
+        "ojol_ready": ojol_ready,
         "units": [u.__dict__ for u in selected],
         "on_book": on_book,
         "sourcing_gap": sourcing_gap,

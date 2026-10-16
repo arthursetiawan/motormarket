@@ -3,16 +3,16 @@
 {% load humanize %}
 {% load price_tags %}
 
-{% block title %}Fleets — MotorMarket{% endblock %}
+{% block title %}Armada — NegoMotor{% endblock %}
 
 {% block content %}
 <section class="fleet-hero">
-  <img src="{% static 'img/fleets/fleet-hero.jpg' %}" alt="Scooters lined up in a depot yard">
+  <img src="{% static 'img/fleets/fleet-hero.jpg' %}" alt="Deretan matic di depo">
   <div class="fleet-hero-copy">
-    <p class="eyebrow">For companies</p>
-    <h2>Put a whole fleet on the road</h2>
-    <p>Delivery, ride-hailing, guest rental, or a sales team. Pack quotes use fair value, deal mix, and city supply — not a flat brochure price.</p>
-    <a class="btn" href="#quote">Request a quote</a>
+    <p class="eyebrow">Untuk perusahaan</p>
+    <h2>Siapkan armada motor sekaligus</h2>
+    <p>Delivery, ojol, sewa wisata, atau tim sales. Kutipan pak memakai estimasi harga, mix deal, dan stok kota — bukan harga brosur datar.</p>
+    <a class="btn" href="#quote">Minta penawaran</a>
   </div>
 </section>
 
@@ -32,43 +32,43 @@
       <p class="fleet-models">{{ program.models|join:" · " }}</p>
       <div class="fleet-facts">
         <div>
-          <span>Ready now</span>
+          <span>Siap sekarang</span>
           <strong>{{ program.available }}</strong>
         </div>
         <div>
-          <span>In these cities</span>
+          <span>Di kota sasaran</span>
           <strong>{{ program.in_cities }}</strong>
         </div>
         <div>
-          <span>Typical bike</span>
-          <strong>{% if program.avg_fair %}{{ program.avg_fair|currency_idr }}{% else %}Ask us{% endif %}</strong>
+          <span>Unit tipikal</span>
+          <strong>{% if program.avg_fair %}{{ program.avg_fair|currency_idr }}{% else %}Tanya kami{% endif %}</strong>
         </div>
       </div>
       {% if program.pack %}
       <div class="fleet-facts">
         <div>
-          <span>10-bike coverage</span>
+          <span>Cakupan 10 unit</span>
           <strong>{{ program.pack.coverage_pct }}%</strong>
         </div>
         <div>
-          <span>Pack ask</span>
+          <span>Total harga pak</span>
           <strong>{{ program.pack.buy_asks|currency_idr }}</strong>
         </div>
         <div>
-          <span>Vs fair value</span>
+          <span>Vs estimasi</span>
           <strong>
             {% if program.pack.savings_vs_fair > 0 %}
               −{{ program.pack.savings_vs_fair|currency_idr }}
             {% elif program.pack.savings_vs_fair < 0 %}
               +{{ program.pack.savings_vs_fair|abs_num|currency_idr }}
             {% else %}
-              At fair
+              Setara
             {% endif %}
           </strong>
         </div>
       </div>
       {% if program.demand %}
-      <p class="meta">City demand index:
+      <p class="meta">Indeks permintaan kota:
         {% for row in program.demand|slice:":3" %}
           {{ row.city }} {{ row.index }}{% if not forloop.last %} · {% endif %}
         {% endfor %}
@@ -79,17 +79,17 @@
       <div class="quote-picks">
         {% for quote in program.quotes %}
         <a class="quote-pick" href="{% url 'fleets' %}?program={{ program.slug }}&size={{ quote.size }}#pack">
-          <strong>{{ quote.size }} bikes</strong>
-          <span>Buy {{ quote.buy_total|currency_idr }}</span>
-          <span>Rent {{ quote.monthly|currency_idr }}/mo</span>
+          <strong>{{ quote.size }} unit</strong>
+          <span>Beli {{ quote.buy_total|currency_idr }}</span>
+          <span>Sewa {{ quote.monthly|currency_idr }}/bln</span>
         </a>
         {% endfor %}
       </div>
-      <p class="meta">{% if program.avg_km %}Matching bikes average {{ program.avg_km|intcomma }} km. {% endif %}Open a size to see the recommended pack from the live book.</p>
+      <p class="meta">{% if program.avg_km %}Unit cocok rata-rata {{ program.avg_km|intcomma }} km. {% endif %}Buka ukuran untuk lihat pak dari stok live.</p>
       {% else %}
-      <p class="muted">We’ll price this once matching bikes are on the book.</p>
+      <p class="muted">Kami hitung harga setelah ada unit yang cocok di buku.</p>
       {% endif %}
-      <a class="btn" href="{% url 'fleets' %}?program={{ program.slug }}&size=10#pack">Build a pack</a>
+      <a class="btn" href="{% url 'fleets' %}?program={{ program.slug }}&size=10#pack">Bangun pak</a>
     </div>
   </article>
   {% endfor %}
@@ -99,21 +99,24 @@
 <section class="card pack-panel" id="pack">
   <div class="pack-head">
     <div>
-      <p class="eyebrow">Recommended pack</p>
-      <h3>{{ pack.program.name }} · {{ pack.size }} bikes{% if pack.preferred_city %} · {{ pack.preferred_city }}{% endif %}</h3>
-      <p>{{ pack.on_book }} units on the book ({{ pack.coverage_pct }}% coverage). {% if pack.sourcing_gap %}Source {{ pack.sourcing_gap }} more at about {{ pack.unit_fill|currency_idr }} each.{% else %}Full coverage from live inventory.{% endif %}</p>
+      <p class="eyebrow">Pak direkomendasikan</p>
+      <h3>{{ pack.program.name }} · {{ pack.size }} unit{% if pack.preferred_city %} · {{ pack.preferred_city }}{% endif %}</h3>
+      <p>{{ pack.on_book }} unit di buku (cakupan {{ pack.coverage_pct }}%). {% if pack.sourcing_gap %}Perlu sumber {{ pack.sourcing_gap }} lagi sekitar {{ pack.unit_fill|currency_idr }} per unit.{% else %}Cakupan penuh dari stok live.{% endif %}
+        {% if pack.exclude_caution %} · Tanpa unit waspada{% endif %}
+        {% if pack.ojol_ready %} · Hanya ojol-ready{% endif %}
+      </p>
     </div>
     <div class="fleet-facts">
       <div>
-        <span>Buy (asks + fill)</span>
+        <span>Beli (harga + fill)</span>
         <strong>{{ pack.buy_total|currency_idr }}</strong>
       </div>
       <div>
-        <span>Rent / month</span>
+        <span>Sewa / bulan</span>
         <strong>{% if pack.monthly %}{{ pack.monthly|currency_idr }}{% else %}—{% endif %}</strong>
       </div>
       <div>
-        <span>Avg km in pack</span>
+        <span>Rata km di pak</span>
         <strong>{% if pack.avg_km %}{{ pack.avg_km|intcomma }}{% else %}—{% endif %}</strong>
       </div>
     </div>
@@ -122,7 +125,7 @@
   <form method="get" class="pack-controls" action="{% url 'fleets' %}">
     <input type="hidden" name="program" value="{{ pack.program.slug }}">
     <label>
-      Size
+      Ukuran
       <select name="size">
         {% for n in pack_sizes %}
         <option value="{{ n }}" {% if n == pack_size %}selected{% endif %}>{{ n }}</option>
@@ -130,10 +133,18 @@
       </select>
     </label>
     <label>
-      Prefer city
+      Preferensi kota
       <input type="text" name="city" value="{{ pack_city }}" placeholder="Jakarta">
     </label>
-    <button class="btn" type="submit">Refresh pack</button>
+    <label class="pack-check">
+      <input type="checkbox" name="exclude_caution" value="1" {% if exclude_caution %}checked{% endif %}>
+      Kecualikan skor waspada
+    </label>
+    <label class="pack-check">
+      <input type="checkbox" name="ojol_ready" value="1" {% if ojol_ready %}checked{% endif %}>
+      Hanya ojol-ready (matic ≥125, surat lengkap)
+    </label>
+    <button class="btn" type="submit">Segarkan pak</button>
   </form>
 
   {% if pack.demand %}
@@ -142,7 +153,7 @@
     <div class="demand-chip {% if row.program_city %}is-program{% endif %}">
       <strong>{{ row.city }}</strong>
       <span class="bar"><span class="bar-fill" style="width: {{ row.index }}%"></span></span>
-      <span>{{ row.n }} bikes · index {{ row.index }}</span>
+      <span>{{ row.n }} unit · indeks {{ row.index }}</span>
     </div>
     {% endfor %}
   </div>
@@ -151,7 +162,7 @@
   {% if pack.units %}
   <table class="market">
     <thead>
-      <tr><th>Unit</th><th>City</th><th>Year</th><th>Km</th><th>Ask</th><th>Fair</th><th>Deal</th><th>Pack score</th></tr>
+      <tr><th>Unit</th><th>Kota</th><th>Tahun</th><th>Km</th><th>Harga</th><th>Estimasi</th><th>Deal</th><th>Skor pak</th></tr>
     </thead>
     <tbody>
       {% for unit in pack.units %}
@@ -169,17 +180,17 @@
     </tbody>
   </table>
   {% else %}
-  <p class="muted">No matching bikes on the book for this program yet.</p>
+  <p class="muted">Belum ada unit cocok di buku untuk program ini (coba longgarkan filter).</p>
   {% endif %}
-  <p class="meta"><a href="{% url 'fleets' %}?program={{ pack.program.slug }}&size={{ pack.size }}{% if pack_city %}&city={{ pack_city|urlencode }}{% endif %}#quote">Use this pack in the quote form →</a></p>
+  <p class="meta"><a href="{% url 'fleets' %}?program={{ pack.program.slug }}&size={{ pack.size }}{% if pack_city %}&city={{ pack_city|urlencode }}{% endif %}{% if exclude_caution %}&exclude_caution=1{% endif %}{% if ojol_ready %}&ojol_ready=1{% endif %}#quote">Pakai pak ini di formulir penawaran →</a></p>
 </section>
 {% endif %}
 
 <section class="card quote-panel" id="quote">
   <div>
-    <p class="eyebrow">About two minutes</p>
-    <h3>Tell us what you need</h3>
-    <p>Buy totals blend live asks for selected units with fair-value fill for the sourcing gap. Rent spreads that total over 36 months, plus 25%. Service, insurance, and plates are extra.</p>
+    <p class="eyebrow">Sekitar dua menit</p>
+    <h3>Ceritakan kebutuhan Anda</h3>
+    <p>Total beli memadukan harga live unit terpilih dengan fill estimasi untuk celah stok. Sewa membagi total itu 36 bulan × 1,25. Servis, asuransi, dan plat tambahan.</p>
   </div>
   <form method="post" class="fleet-form">
     {% csrf_token %}
@@ -190,7 +201,7 @@
       {% if field.errors %}<span class="field-error">{{ field.errors|striptags }}</span>{% endif %}
     </label>
     {% endfor %}
-    <button class="btn" type="submit">Send request</button>
+    <button class="btn" type="submit">Kirim permintaan</button>
   </form>
 </section>
 {% endblock %}

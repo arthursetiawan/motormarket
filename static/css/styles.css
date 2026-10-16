@@ -88,19 +88,51 @@ body{font-family:Inter,ui-sans-serif,system-ui, -apple-system, 'Segoe UI', Robot
 .badge.trust-high_trust{background:#dcfce7; color:#166534}
 .badge.trust-review{background:#fef9c3; color:#854d0e}
 .badge.trust-caution{background:#fee2e2; color:#991b1b}
+.trust-panel{border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin:12px 0; background:#f8fafc}
+.trust-panel.trust-caution{border-color:#fecaca; background:#fef2f2}
+.trust-panel.trust-review{border-color:#fde68a; background:#fffbeb}
+.trust-panel.trust-high_trust{border-color:#bbf7d0; background:#f0fdf4}
+.trust-head{display:flex; align-items:center; gap:10px; margin:0 0 6px}
+.trust-flags{margin:8px 0 0; padding-left:18px; font-size:.88rem}
+.trust-flags .flag-info{color:#0369a1}
+.trust-flags .flag-watch{color:#b45309}
+.trust-flags .flag-alert{color:#b91c1c; font-weight:600}
+.surat-chips .chip-ok{background:#dcfce7; color:#166534}
+.surat-chips .chip-alert{background:#fee2e2; color:#991b1b}
+.deal-sheet-panel,.deal-sheet-list{margin-top:20px; padding:14px; border:1px solid #e5e7eb; border-radius:10px; background:#fff}
+.deal-form{display:grid; gap:10px; max-width:420px}
+.deal-form label{display:flex; flex-direction:column; gap:4px; font-size:.85rem; font-weight:600}
+.deal-form input,.deal-form select,.deal-form textarea{padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; font:inherit}
+.create-form{display:grid; grid-template-columns:1fr 1fr; gap:12px; max-width:720px}
+.create-form label{display:flex; flex-direction:column; gap:4px; font-size:.85rem; font-weight:600}
+.create-form .span-2,.create-form button{grid-column:1 / -1}
+.create-form input,.create-form select,.create-form textarea{padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; font:inherit}
+.pack-check{flex-direction:row !important; align-items:center; gap:8px !important; font-weight:500 !important}
+.pack-check input{width:auto}
+.fee-panel,.chat-panel,.unlock-panel,.close-deal-panel,.terms-panel{margin-top:16px; padding:14px; border:1px solid #e5e7eb; border-radius:10px; background:#fff}
+.fee-panel{background:#f0f9ff; border-color:#bae6fd}
+.unlock-panel.unlocked{background:#f0fdf4; border-color:#bbf7d0}
+.badge-on-platform{background:#dcfce7; color:#166534}
+.badge-off-app{background:#fee2e2; color:#991b1b}
+.chat-log{max-height:280px; overflow:auto; display:flex; flex-direction:column; gap:8px; margin:10px 0; padding:8px; background:#f8fafc; border-radius:8px}
+.chat-bubble{background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; font-size:.9rem}
+.chat-bubble.mine{border-color:#7dd3fc; background:#f0f9ff}
+.chat-form{display:flex; flex-direction:column; gap:8px}
+.chat-form textarea,.chat-form select{padding:8px; border:1px solid #e5e7eb; border-radius:8px; font:inherit}
+.inline-forms{display:flex; flex-wrap:wrap; gap:8px}
+.policy-hint{font-size:.85rem}
+.btn-ghost{background:transparent; border:1px solid #cbd5e1; color:#334155}
 .flag-info{color:#0369a1; font-weight:700; text-transform:uppercase; font-size:.7rem; margin-right:4px}
 .flag-watch{color:#b45309; font-weight:700; text-transform:uppercase; font-size:.7rem; margin-right:4px}
 .flag-alert{color:#b91c1c; font-weight:700; text-transform:uppercase; font-size:.7rem; margin-right:4px}
 .create-layout{display:grid; grid-template-columns:1.4fr 1fr; gap:20px; align-items:start; margin-bottom:24px}
-.create-form p{margin:0 0 12px}
-.create-form label{display:block; font-weight:600; font-size:.85rem; margin-bottom:4px}
-.create-form input,.create-form select,.create-form textarea{width:100%; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; font:inherit}
 .create-preview img{max-width:100%; border-radius:8px; margin-top:8px}
 .suggest-panel .stat-value{margin:8px 0}
 .btn-secondary{background:#334155; margin-left:8px}
 .btn-secondary:disabled{opacity:.45; cursor:not-allowed}
 @media (max-width:800px){
   .create-layout{grid-template-columns:1fr}
+  .create-form{grid-template-columns:1fr}
   .btn-secondary{margin-left:0; margin-top:8px}
 }
 .pack-panel{margin:20px 0; padding:18px}

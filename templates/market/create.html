@@ -1,19 +1,26 @@
 {% extends "base.html" %}
 {% load price_tags %}
 
-{% block title %}Create listing — MotorMarket{% endblock %}
+{% block title %}Jual motor — NegoMotor{% endblock %}
 
 {% block content %}
 <section class="create-layout">
   <div>
-    <p class="eyebrow">Sell a bike</p>
-    <h2>Create listing</h2>
-    <p class="meta">Fill the bike details, then check the model fair value before you lock the ask.</p>
+    <p class="eyebrow">Jual motor</p>
+    <h2>Pasang listing</h2>
+    <p class="meta">Isi surat-surat (STNK, BPKB, pajak, plat) agar skor kepercayaan lebih tinggi, lalu cek estimasi harga sebelum mengunci ask.</p>
     <form method="post" enctype="multipart/form-data" id="listing-form" class="create-form">
       {% csrf_token %}
-      {{ form.as_p }}
-      <div id="preview" class="create-preview"></div>
-      <button class="btn" type="submit">Create listing</button>
+      {% for field in form %}
+      <label class="{% if field.name == 'description' %}span-2{% endif %}">
+        {{ field.label }}
+        {{ field }}
+        {% if field.help_text %}<span class="meta">{{ field.help_text }}</span>{% endif %}
+        {% if field.errors %}<span class="field-error">{{ field.errors|striptags }}</span>{% endif %}
+      </label>
+      {% endfor %}
+      <div id="preview" class="create-preview span-2"></div>
+      <button class="btn" type="submit">Pasang listing</button>
     </form>
   </div>
 
@@ -109,11 +116,13 @@
   const preview = document.getElementById('preview');
   if (fileInput) {
     fileInput.addEventListener('change', (e) => {
-      preview.innerHTML = '';
       const file = e.target.files[0];
-      if (!file) return;
+      if (!file) { preview.innerHTML = ''; return; }
       const img = document.createElement('img');
       img.src = URL.createObjectURL(file);
+      img.style.maxWidth = '320px';
+      img.style.borderRadius = '8px';
+      preview.innerHTML = '';
       preview.appendChild(img);
     });
   }

@@ -2,45 +2,49 @@
 {% load thumb_tags %}
 {% load price_tags %}
 
-{% block title %}Listings — MotorMarket{% endblock %}
+{% block title %}Lelang — NegoMotor{% endblock %}
 
 {% block content %}
 <section class="filters">
   <form method="get" class="filters-form">
-    <input type="search" name="q" placeholder="Search make, model, city" value="{{ request.GET.q }}">
+    <input type="search" name="q" placeholder="Cari merek, tipe, kota" value="{{ request.GET.q }}">
     <select name="make">
-      <option value="">All makes</option>
+      <option value="">Semua merek</option>
       {% for make in makes %}
       <option value="{{ make }}" {% if request.GET.make == make %}selected{% endif %}>{{ make }}</option>
       {% endfor %}
     </select>
     <select name="city">
-      <option value="">All cities</option>
+      <option value="">Semua kota</option>
       {% for city in cities %}
       <option value="{{ city }}" {% if request.GET.city == city %}selected{% endif %}>{{ city }}</option>
       {% endfor %}
     </select>
     <select name="deal">
-      <option value="">Any deal</option>
-      <option value="great_deal" {% if request.GET.deal == 'great_deal' %}selected{% endif %}>Great deal</option>
-      <option value="good_deal" {% if request.GET.deal == 'good_deal' %}selected{% endif %}>Good deal</option>
-      <option value="fair" {% if request.GET.deal == 'fair' %}selected{% endif %}>Fair</option>
-      <option value="rich" {% if request.GET.deal == 'rich' %}selected{% endif %}>Above market</option>
-      <option value="overpriced" {% if request.GET.deal == 'overpriced' %}selected{% endif %}>Overpriced</option>
+      <option value="">Semua deal</option>
+      <option value="great_deal" {% if request.GET.deal == 'great_deal' %}selected{% endif %}>Sangat murah</option>
+      <option value="good_deal" {% if request.GET.deal == 'good_deal' %}selected{% endif %}>Murah</option>
+      <option value="fair" {% if request.GET.deal == 'fair' %}selected{% endif %}>Wajar</option>
+      <option value="rich" {% if request.GET.deal == 'rich' %}selected{% endif %}>Sedikit mahal</option>
+      <option value="overpriced" {% if request.GET.deal == 'overpriced' %}selected{% endif %}>Mahal</option>
     </select>
     <select name="trust">
-      <option value="">Any trust</option>
+      <option value="">Semua trust</option>
       <option value="high_trust" {% if request.GET.trust == 'high_trust' %}selected{% endif %}>High trust</option>
       <option value="review" {% if request.GET.trust == 'review' %}selected{% endif %}>Review</option>
       <option value="caution" {% if request.GET.trust == 'caution' %}selected{% endif %}>Caution</option>
     </select>
-    <input type="number" name="year" placeholder="Year" value="{{ request.GET.year }}">
+    <select name="surat">
+      <option value="">Semua surat</option>
+      <option value="lengkap" {% if request.GET.surat == 'lengkap' %}selected{% endif %}>Surat lengkap</option>
+    </select>
+    <input type="number" name="year" placeholder="Tahun" value="{{ request.GET.year }}">
     <select name="sort">
-      <option value="">Newest</option>
-      <option value="deal" {% if request.GET.sort == 'deal' %}selected{% endif %}>Best deal</option>
-      <option value="trust" {% if request.GET.sort == 'trust' %}selected{% endif %}>Highest trust</option>
-      <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Ask ↑</option>
-      <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Ask ↓</option>
+      <option value="">Terbaru</option>
+      <option value="deal" {% if request.GET.sort == 'deal' %}selected{% endif %}>Deal terbaik</option>
+      <option value="trust" {% if request.GET.sort == 'trust' %}selected{% endif %}>Trust tertinggi</option>
+      <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Harga ↑</option>
+      <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Harga ↓</option>
     </select>
     <button class="btn" type="submit">Filter</button>
   </form>
@@ -61,22 +65,23 @@
     <p class="meta">{{ m.make }} {{ m.model_name }} · {{ m.city }} · {{ m.mileage_km|default:0 }} km</p>
     <p class="price">{{ m.start_price|currency_idr }}</p>
     {% if m.prediction %}
-    <p class="meta">Fair value {{ m.prediction.predicted_price|currency_idr }}</p>
+    <p class="meta">Estimasi {{ m.prediction.predicted_price|currency_idr }}</p>
     {% endif %}
-    <a class="btn" href="{% url 'motorcycle_detail' m.pk %}">View &amp; bid</a>
+    {% if m.surat_lengkap %}<p class="meta">Surat lengkap</p>{% endif %}
+    <a class="btn" href="{% url 'motorcycle_detail' m.pk %}">Lihat &amp; tawar</a>
   </article>
   {% empty %}
-  <p>No motorcycles match these filters.</p>
+  <p>Tidak ada motor yang cocok dengan filter ini.</p>
   {% endfor %}
 </section>
 
 <div class="pagination">
   {% if motorcycles.has_previous %}
-  <a href="?{% querystring request page=motorcycles.previous_page_number %}" class="btn">Prev</a>
+  <a href="?{% querystring request page=motorcycles.previous_page_number %}" class="btn">Sebelumnya</a>
   {% endif %}
-  <span>Page {{ motorcycles.number }} of {{ motorcycles.paginator.num_pages }}</span>
+  <span>Halaman {{ motorcycles.number }} dari {{ motorcycles.paginator.num_pages }}</span>
   {% if motorcycles.has_next %}
-  <a href="?{% querystring request page=motorcycles.next_page_number %}" class="btn">Next</a>
+  <a href="?{% querystring request page=motorcycles.next_page_number %}" class="btn">Berikutnya</a>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,44 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}MotorMarket{% endblock %}</title>
+  <title>{% block title %}NegoMotor{% endblock %}</title>
   {% load static %}
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <div class="container">
+  <div class="site-shell">
     <header class="site-header">
-      <div>
-        <h1><a href="{% url 'home' %}" class="brand">MotorMarket</a></h1>
-        <p class="tagline">Used motorcycle marketplace intelligence</p>
+      <div class="container header-inner">
+        <a class="brand" href="{% url 'home' %}">
+          <span class="brand-mark">Nego<span>Motor</span></span>
+          <span class="brand-tag">Jual-beli &amp; lelang motor</span>
+        </a>
+        <nav class="site-nav" aria-label="Utama">
+          <a href="{% url 'index' %}">Lelang</a>
+          <a href="{% url 'insights' %}">Insight</a>
+          <a href="{% url 'fleets' %}">Armada</a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}">Profil</a>
+            <a href="{% url 'create_listing' %}">Jual</a>
+            <a href="{% url 'account_logout' %}">Keluar</a>
+          {% else %}
+            <a href="{% url 'account_login' %}">Masuk</a>
+            <a class="nav-cta" href="{% url 'account_signup' %}">Daftar</a>
+          {% endif %}
+        </nav>
       </div>
-      <nav>
-        <a href="{% url 'index' %}">Listings</a>
-        <a href="{% url 'insights' %}">Insights</a>
-        <a href="{% url 'fleets' %}">Fleets</a>
-        {% if user.is_authenticated %}
-          <a href="{% url 'profile' %}">Profile</a>
-          <a href="{% url 'create_listing' %}">Create</a>
-          <a href="{% url 'account_logout' %}">Logout</a>
-        {% else %}
-          <a href="{% url 'account_login' %}">Login</a>
-          <a href="{% url 'account_signup' %}">Sign up</a>
-        {% endif %}
-      </nav>
     </header>
+
     {% if messages %}
+    <div class="container">
       <ul class="messages">
         {% for message in messages %}
           <li class="{{ message.tags }}">{{ message }}</li>
         {% endfor %}
       </ul>
+    </div>
     {% endif %}
-    {% block content %}{% endblock %}
+
+    {% block full_bleed %}{% endblock %}
+
+    {% block content_wrapper %}
+    <div class="page-body">
+      <div class="container">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+    {% endblock %}
+
     <footer class="site-footer">
-      <p>&copy; MotorMarket — price model, deal scores, and live bids</p>
+      <div class="container">
+        <p>&copy; NegoMotor — Jual-beli, lelang, dan nego motor di Indonesia ·
+          <a href="{% url 'terms' %}">Ketentuan &amp; anti-bypass</a></p>
+      </div>
     </footer>
   </div>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

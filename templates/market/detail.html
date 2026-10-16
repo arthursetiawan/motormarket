@@ -1,161 +1,270 @@
 {% extends "base.html" %}
 {% load thumb_tags %}
+{% load humanize %}
 {% load price_tags %}
 
-{% block title %}{{ motorcycle.title }} — MotorMarket{% endblock %}
+{% block title %}{{ motorcycle.title }} — NegoMotor{% endblock %}
 
 {% block content %}
-<p class="meta"><a href="{% url 'index' %}">Listings</a> · {{ motorcycle.city }}</p>
-<h2>{{ motorcycle.title }}</h2>
+<a class="detail-back" href="{% url 'index' %}">← Kembali ke lelang</a>
+<h1 class="detail-title">{{ motorcycle.title }}</h1>
+{% if motorcycle.deal_status == "closed_on_platform" %}
+<span class="badge badge-on-platform">Deal di NegoMotor</span>
+{% elif motorcycle.deal_status == "sold_off_app" %}
+<span class="badge badge-off-app">Deal di luar app — tanpa perlindungan</span>
+{% endif %}
+
 <div class="detail-grid">
   <div class="media">
     {% listing_photo motorcycle as photo %}
     <img src="{{ photo }}" alt="{{ motorcycle.title }}" class="detail-image">
   </div>
+
   <div class="info">
-    <p class="meta">{{ motorcycle.make }} {{ motorcycle.model_name }} · {{ motorcycle.year }} · {{ motorcycle.engine_cc }}cc · {{ motorcycle.condition|title }} · {{ motorcycle.mileage_km }} km</p>
-    <p class="meta">Seller {{ motorcycle.seller.username }} · {{ motorcycle.owners_count }} owner{{ motorcycle.owners_count|pluralize }} · {{ motorcycle.transmission|title }}</p>
-    {% if prediction %}
-    <span class="badge badge-{{ prediction.deal_label }}">{{ prediction.deal_label|deal_name }}</span>
+    <p class="meta meta-dense">
+      {% if motorcycle.year %}{{ motorcycle.year }}{% endif %}
+      {% if motorcycle.make %} · {{ motorcycle.make }}{% if motorcycle.model_name %} {{ motorcycle.model_name }}{% endif %}{% endif %}
+      {% if motorcycle.mileage_km %} · {{ motorcycle.mileage_km|intcomma }} km{% endif %}
+      {% if motorcycle.city %} · {{ motorcycle.city }}{% endif %}
+      · Penjual: {{ motorcycle.seller.username }}
+    </p>
+    <p class="price"><span class="price-label">Harga awal</span>{{ motorcycle.start_price|currency_idr }}</p>
+    {% if motorcycle.engine_cc or motorcycle.condition or motorcycle.transmission %}
+    <p class="meta meta-dense">
+      {% if motorcycle.engine_cc %}{{ motorcycle.engine_cc }}cc{% endif %}
+      {% if motorcycle.transmission %} · {{ motorcycle.transmission|trans_name }}{% endif %}
+      {% if motorcycle.condition %} · {{ motorcycle.condition|condition_name }}{% endif %}
+      {% if motorcycle.fuel_type %} · {{ motorcycle.fuel_type|fuel_name }}{% endif %}
+    </p>
     {% endif %}
+
+    <ul class="chips surat-chips">
+      {% if motorcycle.surat_lengkap %}
+      <li class="chip-ok">Surat lengkap</li>
+      {% endif %}
+      <li>STNK: {{ motorcycle.get_stnk_status_display }}</li>
+      <li>BPKB: {{ motorcycle.get_bpkb_status_display }}</li>
+      {% if motorcycle.pajak_mati %}
+      <li class="chip-alert">Pajak mati</li>
+      {% elif motorcycle.tax_valid_through %}
+      <li>Pajak s/d {{ motorcycle.tax_valid_through }}</li>
+      {% else %}
+      <li>Pajak: belum diisi</li>
+      {% endif %}
+      {% if motorcycle.plate_number %}
+      <li>Plat {{ motorcycle.plate_number }}{% if motorcycle.plate_region %} ({{ motorcycle.plate_region }}){% endif %}</li>
+      {% endif %}
+      {% if motorcycle.ojol_ready %}
+      <li class="chip-ok">Cocok ojol</li>
+      {% endif %}
+    </ul>
+
     {% if trust %}
-    <span class="badge trust-{{ trust.label }}">{{ trust.label|trust_name }} · {{ trust.score }}</span>
+    <div class="trust-panel trust-{{ trust.label }}">
+      <p class="trust-head">
+        <span class="badge trust-{{ trust.label }}">{{ trust.label|trust_name }}</span>
+        <strong>Skor {{ trust.score }}/100</strong>
+      </p>
+      <p class="meta">{{ trust_copy }}</p>
+      {% if trust.flags %}
+      <ul class="trust-flags">
+        {% for flag in trust.flags %}
+        <li class="flag-{{ flag.severity }}">{{ flag.message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
     {% endif %}
-    <p class="price">Ask {{ motorcycle.start_price|currency_idr }}</p>
-    {% if prediction %}
-    <p class="meta">Fair value {{ prediction.predicted_price|currency_idr }}</p>
-    {% endif %}
+
     <p>{{ motorcycle.description }}</p>
-    <p>Highest bid: {% if highest_bid %}{{ highest_bid.amount|currency_idr }} by {{ highest_bid.bidder.username }}{% else %}No bids yet{% endif %}</p>
+    <p class="meta policy-hint">Kontak penjual tidak ditampilkan di listing. Chat di NegoMotor dulu — <a href="{% url 'terms' %}">ketentuan anti-bypass</a>.</p>
+
+    {% if prediction %}
+    <p class="meta">Estimasi harga wajar {{ prediction.predicted_price|currency_idr }}
+      {% if prediction.deal_label %} · <span class="badge badge-{{ prediction.deal_label }}">{{ prediction.deal_label|deal_name }}</span>{% endif %}
+    </p>
+    {% endif %}
+
+    <div class="fee-panel">
+      <h4>Biaya platform (pembeli)</h4>
+      <p>Penjual listing <strong>gratis</strong>. Pembeli membayar biaya sukses
+        <strong>~{{ fee.rate_pct|floatformat:0 }}%</strong> dari harga/tawaran
+        (min {{ fee.min_idr|currency_idr }} · max {{ fee.max_idr|currency_idr }}).</p>
+      <p class="price"><span class="price-label">Estimasi biaya sekarang</span>{{ fee.fee|currency_idr }}</p>
+      <p class="meta">Dasar hitungan: {{ fee.basis|currency_idr }} (tawaran tertinggi atau harga awal).</p>
+      {% if fee_paid %}
+      <p class="chip-ok">Biaya sudah dibayar — kontak terbuka.</p>
+      {% endif %}
+    </div>
+
+    <p class="highest-bid">
+      {% if highest_bid %}
+        Tawaran tertinggi: {{ highest_bid.amount|currency_idr }} oleh {{ highest_bid.bidder.username }}
+      {% else %}
+        Belum ada tawaran — jadi yang pertama
+      {% endif %}
+    </p>
 
     {% if user.is_authenticated %}
-    <form method="post" action="{% url 'place_bid' motorcycle.pk %}">
-      {% csrf_token %}
-      <input type="number" step="1000" name="amount" placeholder="Your bid in IDR">
-      <button type="submit" class="btn">Place bid</button>
-    </form>
-    <div id="live-bids">
-      <h4>Live bids</h4>
-      <ul id="bids-list"></ul>
+    <div class="bid-panel" id="auction" data-motorcycle="{{ motorcycle.pk }}" data-user="{{ user.username }}">
+      <h4>Ajukan tawaran</h4>
+      <p class="meta">Minimal di atas {{ min_bid|currency_idr }} · biaya platform ditagih saat unlock kontak</p>
+      <form method="post" action="{% url 'place_bid' motorcycle.pk %}" class="bid-form">
+        {% csrf_token %}
+        <input type="number" step="0.01" name="amount" placeholder="Tawaran Anda (Rp)" required>
+        <button type="submit" class="btn">Tawar</button>
+      </form>
+
+      <div id="live-bids">
+        <h4>Tawaran langsung</h4>
+        <ul id="bids-list"></ul>
+      </div>
     </div>
-    <script>
-      const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/auctions/');
-      ws.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        if (data.type === 'new_bid' && String(data.motorcycle) === '{{ motorcycle.pk }}') {
-          const li = document.createElement('li');
-          li.textContent = data.bidder + ' — Rp ' + data.amount;
-          document.getElementById('bids-list').prepend(li);
-        }
-      };
-    </script>
     {% else %}
-    <p><a href="{% url 'account_login' %}">Log in</a> to place a bid.</p>
+    <p><a href="{% url 'account_login' %}">Masuk</a> untuk menawar &amp; chat.</p>
+    {% endif %}
+
+    {% if user.is_authenticated %}
+    <section class="chat-panel" id="chat">
+      <h4>Chat di NegoMotor</h4>
+      <p class="meta">Hanya pesan dalam app sampai biaya platform dibayar. Nomor / WA / IG otomatis diblokir.</p>
+      <div class="chat-log">
+        {% for msg in chat_messages %}
+        <div class="chat-bubble {% if msg.sender_id == user.id %}mine{% endif %}">
+          <strong>{{ msg.sender.username }}</strong>
+          <span class="meta">{{ msg.created_at|date:"d M H:i" }}</span>
+          <p>{{ msg.body }}</p>
+          {% if msg.was_redacted %}<span class="meta">di-redaksi</span>{% endif %}
+        </div>
+        {% empty %}
+        <p class="muted">Belum ada pesan.</p>
+        {% endfor %}
+      </div>
+      {% if can_chat %}
+      <form method="post" action="{% url 'send_listing_message' motorcycle.pk %}" class="chat-form">
+        {% csrf_token %}
+        {% if user == motorcycle.seller and reply_buyers %}
+        <label>
+          Balas ke pembeli
+          <select name="recipient_id" required>
+            {% for b in reply_buyers %}
+            <option value="{{ b.id }}">{{ b.username }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        {% endif %}
+        {{ message_form.body }}
+        <button type="submit" class="btn">Kirim</button>
+      </form>
+      {% elif user == motorcycle.seller %}
+      <p class="meta">Menunggu pembeli memulai chat.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if unlocked_contact %}
+    <section class="unlock-panel unlocked">
+      <h4>Kontak terbuka</h4>
+      {% if unlocked_contact.self %}
+      <p class="meta">Ini nomor rahasia Anda (hanya terlihat oleh Anda &amp; pembeli yang sudah bayar).</p>
+      {% endif %}
+      <p>HP: <strong>{{ unlocked_contact.phone }}</strong></p>
+      <p>WA: <strong>{{ unlocked_contact.wa }}</strong></p>
+      {% if my_deal and my_deal.meetup_exact %}
+      <p>Temu exact: <strong>{{ my_deal.meetup_exact }}</strong></p>
+      {% endif %}
+    </section>
+    {% elif user.is_authenticated and user != motorcycle.seller %}
+    <section class="unlock-panel">
+      <h4>Buka kontak &amp; lokasi exact</h4>
+      <p>Bayar biaya platform {{ fee.fee|currency_idr }} (simulasi MVP — Midtrans/Xendit menyusul).</p>
+      <form method="post" action="{% url 'pay_platform_fee' motorcycle.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn">Bayar biaya platform</button>
+      </form>
+    </section>
+    {% endif %}
+
+    {% if user.is_authenticated and user != motorcycle.seller %}
+    <section class="deal-sheet-panel" id="deal">
+      <h4>Lembar deal — nego sampai jadi</h4>
+      <p class="meta">Kota/area terlihat penjual. Alamat exact terkunci sampai Anda bayar biaya platform ({{ fee.fee|currency_idr }}).</p>
+      <form method="post" action="{% url 'submit_deal_sheet' motorcycle.pk %}" class="deal-form">
+        {% csrf_token %}
+        {% for field in deal_form %}
+        <label>
+          {{ field.label }}
+          {{ field }}
+        </label>
+        {% endfor %}
+        <button type="submit" class="btn">Kirim minat deal</button>
+      </form>
+      {% if my_deal %}
+      <p class="meta">Minat terakhir: {{ my_deal.get_status_display }} · {{ my_deal.meetup_city }}{% if my_deal.meetup_area %} / {{ my_deal.meetup_area }}{% endif %}</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if deal_sheets %}
+    <section class="deal-sheet-list">
+      <h4>Minat deal masuk</h4>
+      <ul>
+        {% for sheet in deal_sheets %}
+        <li>
+          <strong>{{ sheet.buyer.username }}</strong> —
+          {{ sheet.get_payment_preference_display }} ·
+          {{ sheet.get_status_display }} ·
+          temu {{ sheet.meetup_city }}{% if sheet.meetup_area %} ({{ sheet.meetup_area }}){% endif %}
+          {% if sheet.status == "unlocked" or sheet.status == "closed_on_platform" %}
+            {% if sheet.meetup_exact %} · exact: {{ sheet.meetup_exact }}{% endif %}
+          {% else %}
+            · exact terkunci
+          {% endif %}
+          {% if sheet.dp_amount %} · DP {{ sheet.dp_amount|currency_idr }}{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if user.is_authenticated and motorcycle.deal_status == "open" %}
+    <section class="close-deal-panel">
+      <h4>Status deal</h4>
+      <form method="post" action="{% url 'mark_deal_closed' motorcycle.pk %}" class="inline-forms">
+        {% csrf_token %}
+        <button type="submit" name="mode" value="on_platform" class="btn">Tandai selesai di NegoMotor</button>
+        <button type="submit" name="mode" value="off_app" class="btn btn-ghost">Deal di luar app (tanpa perlindungan)</button>
+      </form>
+    </section>
+    {% endif %}
+
+    {% if user == motorcycle.seller %}
+    <p style="margin-top:16px"><a href="{% url 'admin:market_motorcycle_change' motorcycle.pk %}">Edit listing</a></p>
     {% endif %}
   </div>
 </div>
 
-{% if trust %}
-<section class="card desk trust-panel">
-  <h3>Listing trust</h3>
-  <p>{{ trust_copy }} Field completeness {{ trust.completeness }}.</p>
-  <div class="stat-row">
-    <article>
-      <p class="meta">Trust score</p>
-      <p class="stat-value">{{ trust.score }}</p>
-    </article>
-    <article>
-      <p class="meta">Label</p>
-      <p class="stat-value">{{ trust.label|trust_name }}</p>
-    </article>
-    <article>
-      <p class="meta">Flags</p>
-      <p class="stat-value">{{ trust.flags|length }}</p>
-    </article>
-  </div>
-  {% if trust.flags %}
-  <ul class="drivers">
-    {% for flag in trust.flags %}
-    <li><span class="flag-{{ flag.severity }}">{{ flag.severity }}</span> {{ flag.message }}</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="muted">No anomaly flags on this listing.</p>
-  {% endif %}
-</section>
-{% endif %}
-
-<section class="card desk">
-  <h3>Why this price</h3>
-  {% if desk.prediction %}
-  <p>{{ desk.copy }}</p>
-  <div class="stat-row">
-    <article>
-      <p class="meta">Ask</p>
-      <p class="stat-value">{{ motorcycle.start_price|currency_idr }}</p>
-    </article>
-    <article>
-      <p class="meta">Model fair value</p>
-      <p class="stat-value">{{ desk.prediction.predicted_price|currency_idr }}</p>
-    </article>
-    <article>
-      <p class="meta">{% if desk.gap > 0 %}Under fair value{% elif desk.gap < 0 %}Over fair value{% else %}At fair value{% endif %}</p>
-      <p class="stat-value">{{ desk.abs_gap|currency_idr }}</p>
-    </article>
-  </div>
-  {% else %}
-  <p>This listing is not scored yet. Fair value appears after the price model runs.</p>
-  {% endif %}
-  {% if desk.drivers %}
-  <ul class="drivers">
-    {% for note in desk.drivers %}
-    <li>{{ note }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-</section>
-
-<section>
-  <h3>Same model on the book</h3>
-  {% if desk.peer_stats.n %}
-  <p class="meta">{{ desk.peer_stats.n }} other {{ motorcycle.make }} {{ motorcycle.model_name }} listing{{ desk.peer_stats.n|pluralize }}. Average ask {{ desk.peer_stats.avg_ask|currency_idr }}{% if desk.peer_stats.avg_fair %} · average fair value {{ desk.peer_stats.avg_fair|currency_idr }}{% endif %}.</p>
-  <table class="market">
-    <thead>
-      <tr><th>Listing</th><th>City</th><th>Year</th><th>Km</th><th>Ask</th><th>Fair value</th></tr>
-    </thead>
-    <tbody>
-      {% for peer in desk.peers %}
-      <tr>
-        <td><a href="{% url 'motorcycle_detail' peer.pk %}">{{ peer.title }}</a></td>
-        <td>{{ peer.city }}</td>
-        <td>{{ peer.year }}</td>
-        <td>{{ peer.mileage_km }}</td>
-        <td>{{ peer.start_price|currency_idr }}</td>
-        <td>{% if peer.prediction %}{{ peer.prediction.predicted_price|currency_idr }}{% else %}—{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="muted">No other {{ motorcycle.model_name }} listings to compare.</p>
-  {% endif %}
-  {% if desk.city_stats.n %}
-  <p class="meta">{{ motorcycle.city }} book: {{ desk.city_stats.n }} listing{{ desk.city_stats.n|pluralize }}, average ask {{ desk.city_stats.avg_ask|currency_idr }}.</p>
-  {% endif %}
-</section>
-
 {% if similar %}
-<section>
-  <h3>Similar bikes</h3>
+<section class="section" style="padding-top:32px">
+  <div class="section-head">
+    <h2 class="section-title">Motor serupa</h2>
+  </div>
   <div class="grid">
     {% for m in similar %}
     <article class="card">
       {% listing_photo m as photo %}
-      <img src="{{ photo }}" alt="{{ m.title }}">
-      {% if m.prediction %}<span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>{% endif %}
-      <h4><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h4>
-      <p class="meta">{{ m.city }} · {{ m.mileage_km }} km</p>
-      <p class="price">{{ m.start_price|currency_idr }}</p>
+      <a class="card-media" href="{% url 'motorcycle_detail' m.pk %}">
+        <img src="{{ photo }}" alt="{{ m.title }}">
+      </a>
+      <div class="card-body">
+        <h3 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h3>
+        <p class="meta meta-dense">
+          {% if m.year %}{{ m.year }}{% endif %}
+          {% if m.mileage_km %} · {{ m.mileage_km|intcomma }} km{% endif %}
+          {% if m.city %} · {{ m.city }}{% endif %}
+        </p>
+        <p class="price"><span class="price-label">Harga</span>{{ m.start_price|currency_idr }}</p>
+      </div>
     </article>
     {% endfor %}
   </div>
