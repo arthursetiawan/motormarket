@@ -188,7 +188,9 @@ class Motorcycle(models.Model):
         )
 
     def can_publish(self) -> bool:
-        has_photo = bool(self.image) or self.photos.exists()
+        has_photo = bool(self.image)
+        if not has_photo and self.pk:
+            has_photo = self.photos.exists()
         return has_photo and self.checklist_score() >= 3
 
     def ojol_ready(self) -> bool:
