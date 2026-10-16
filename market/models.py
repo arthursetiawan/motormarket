@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 
 class Motorcycle(models.Model):
@@ -459,10 +460,10 @@ class ClosedDeal(models.Model):
         Motorcycle, related_name="closed_deal", on_delete=models.CASCADE
     )
     seller = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="deals_as_seller", on_delete=models.CASCADE
+        User, related_name="deals_as_seller", on_delete=models.CASCADE
     )
     buyer = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="deals_as_buyer", on_delete=models.CASCADE
+        User, related_name="deals_as_buyer", on_delete=models.CASCADE
     )
     winning_bid = models.ForeignKey(
         Bid, related_name="closed_deals", on_delete=models.SET_NULL, null=True, blank=True
@@ -489,10 +490,10 @@ class UserRating(models.Model):
 
     deal = models.ForeignKey(ClosedDeal, related_name="ratings", on_delete=models.CASCADE)
     rater = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="ratings_given", on_delete=models.CASCADE
+        User, related_name="ratings_given", on_delete=models.CASCADE
     )
     ratee = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="ratings_received", on_delete=models.CASCADE
+        User, related_name="ratings_received", on_delete=models.CASCADE
     )
     # Perspective of the ratee for this deal (seller or buyer).
     ratee_role = models.CharField(max_length=10, choices=ROLE_CHOICES)
