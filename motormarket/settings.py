@@ -156,4 +156,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 12,
 }
 
-# Update runserver command suggestion to daphne in README later
+# NegoMotor platform fee (buyer success fee) — tweak via env without code changes
+PLATFORM_FEE_RATE = os.environ.get("PLATFORM_FEE_RATE", "0.03")
+PLATFORM_FEE_MIN_IDR = os.environ.get("PLATFORM_FEE_MIN_IDR", "150000")
+PLATFORM_FEE_MAX_IDR = os.environ.get("PLATFORM_FEE_MAX_IDR", "2500000")
+PLATFORM_FEE_SIMULATED = bool(int(os.environ.get("PLATFORM_FEE_SIMULATED", "1")))

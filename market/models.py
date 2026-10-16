@@ -62,6 +62,28 @@ class Motorcycle(models.Model):
         default="",
         help_text="Nomor polisi, e.g. B 1234 ABC",
     )
+    # Private seller contact — never shown on public detail until buyer fee unlock
+    seller_phone = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        help_text="Private. Revealed only after buyer pays platform fee.",
+    )
+    seller_wa = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        help_text="Private WhatsApp number. Revealed only after fee unlock.",
+    )
+    deal_status = models.CharField(
+        max_length=24,
+        choices=[
+            ("open", "Open"),
+            ("closed_on_platform", "Closed on NegoMotor"),
+            ("sold_off_app", "Sold off-app (no protection)"),
+        ],
+        default="open",
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -177,18 +199,35 @@ class FleetInquiry(models.Model):
 
 
 class DealSheet(models.Model):
-    """Buyer intent to close — meetup + payment preference, no payment rail."""
+    """Buyer intent to close — meetup + payment preference; exact meetup gated by fee."""
 
     PAYMENT_CHOICES = [
         ("cash", "Cash / tunai"),
         ("transfer", "Transfer bank"),
         ("cicilan", "Cicilan / leasing"),
     ]
+    STATUS_CHOICES = [
+        ("open", "Open"),
+        ("unlocked", "Contact unlocked"),
+        ("closed_on_platform", "Closed on NegoMotor"),
+        ("bypass_suspected", "Bypass suspected"),
+    ]
 
     motorcycle = models.ForeignKey(Motorcycle, related_name="deal_sheets", on_delete=models.CASCADE)
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="deal_sheets")
     meetup_city = models.CharField(max_length=80)
-    meetup_area = models.CharField(max_length=120, blank=True, default="")
+    meetup_area = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Area-level only (e.g. Kelapa Gading). Visible before unlock.",
+    )
+    meetup_exact = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Exact pin / address — shown only after platform fee paid.",
+    )
     payment_preference = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default="transfer")
     dp_amount = models.DecimalField(
         max_digits=12,
@@ -198,6 +237,7 @@ class DealSheet(models.Model):
         help_text="Optional down payment (DP) if cicilan.",
     )
     notes = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=24, choices=STATUS_CHOICES, default="open")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -205,3 +245,111 @@ class DealSheet(models.Model):
 
     def __str__(self):
         return f"Deal {self.motorcycle_id} · {self.buyer.username} · {self.payment_preference}"
+
+
+class ListingMessage(models.Model):
+    """In-app buyer↔seller thread on a listing (pre-unlock messaging)."""
+
+    motorcycle = models.ForeignKey(Motorcycle, related_name="messages", on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="listing_messages")
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="received_listing_messages",
+        null=True,
+        blank=True,
+    )
+    body = models.TextField()
+    was_redacted = models.BooleanField(default=False)
+    was_blocked = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Msg {self.motorcycle_id} · {self.sender.username}"
+
+
+class PlatformFee(models.Model):
+    """Buyer platform / success fee — unlocks seller contact + exact meetup."""
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("paid", "Paid"),
+        ("refunded", "Refunded"),
+    ]
+
+    motorcycle = models.ForeignKey(Motorcycle, related_name="platform_fees", on_delete=models.CASCADE)
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="platform_fees")
+    deal_sheet = models.ForeignKey(
+        DealSheet,
+        related_name="fees",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    basis_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    fee_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="pending")
+    simulated = models.BooleanField(
+        default=True,
+        help_text="True for MVP simulated checkout; wire Midtrans/Xendit later.",
+    )
+    paid_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Fee {self.fee_amount} · bike {self.motorcycle_id} · {self.buyer.username} · {self.status}"
+
+    @property
+    def is_paid(self) -> bool:
+        return self.status == "paid"
+
+
+class BypassFlag(models.Model):
+    """Lightweight ops flag when users try to move off-platform / share contact."""
+
+    ACTION_CHOICES = [
+        ("warn", "Warn"),
+        ("block_contact", "Block contact unlock"),
+        ("ban", "Ban account"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bypass_flags")
+    motorcycle = models.ForeignKey(
+        Motorcycle,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bypass_flags",
+    )
+    reason = models.CharField(max_length=240)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, default="warn")
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} · {self.action} · {self.reason[:40]}"
+
+
+class UserSafetyProfile(models.Model):
+    """Per-user contact unlock / ban state for anti-bypass."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="safety_profile")
+    contact_blocked = models.BooleanField(
+        default=False,
+        help_text="If True, fee unlock is refused (bypass forfeit).",
+    )
+    is_banned = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Safety {self.user.username}"

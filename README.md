@@ -83,8 +83,11 @@ python manage.py seed_market
 python manage.py runserver
 # Detail: /market/motorcycle/<id>/ — skor kepercayaan + chip surat + lembar deal
 # Fleets: /market/fleets/?program=ride_hailing&exclude_caution=1&ojol_ready=1#pack
+# Fee unlock: chat → Bayar biaya platform (simulated) → kontak terbuka; /market/terms/
 python manage.py test market.tests
 ```
+
+Platform fee knobs (see `.env.example`): `PLATFORM_FEE_RATE`, `PLATFORM_FEE_MIN_IDR`, `PLATFORM_FEE_MAX_IDR`.
 
 ## Environment variables
 

@@ -1,6 +1,8 @@
 from django import forms
 
-from .models import DealSheet, FleetInquiry, Motorcycle
+from market.services.contact_filter import scrub_public_text
+
+from .models import DealSheet, FleetInquiry, ListingMessage, Motorcycle
 
 
 class MotorcycleForm(forms.ModelForm):
@@ -25,11 +27,13 @@ class MotorcycleForm(forms.ModelForm):
             "pajak_mati",
             "tax_valid_through",
             "plate_number",
+            "seller_phone",
+            "seller_wa",
             "image",
         ]
         labels = {
             "title": "Judul",
-            "description": "Deskripsi",
+            "description": "Deskripsi (tanpa nomor / WA / IG)",
             "start_price": "Harga awal (Rp)",
             "make": "Merek",
             "model_name": "Tipe / model",
@@ -46,13 +50,34 @@ class MotorcycleForm(forms.ModelForm):
             "pajak_mati": "Pajak mati",
             "tax_valid_through": "Pajak berlaku sampai (tahun)",
             "plate_number": "Nomor polisi (plat)",
+            "seller_phone": "No. HP (rahasia — tampil setelah pembeli bayar biaya)",
+            "seller_wa": "WhatsApp (rahasia — tampil setelah unlock)",
             "image": "Foto",
         }
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 4}),
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": "Jangan tulis nomor HP / WA / IG di sini — isi di kolom rahasia di bawah.",
+                }
+            ),
             "plate_number": forms.TextInput(attrs={"placeholder": "B 1234 ABC"}),
             "tax_valid_through": forms.NumberInput(attrs={"placeholder": "2026"}),
+            "seller_phone": forms.TextInput(attrs={"placeholder": "08xxxxxxxxxx"}),
+            "seller_wa": forms.TextInput(attrs={"placeholder": "08xxxxxxxxxx"}),
         }
+        help_texts = {
+            "seller_phone": "Tidak ditampilkan di listing publik. Hanya terbuka setelah pembeli bayar biaya platform.",
+            "seller_wa": "Sama — tidak publik sampai unlock.",
+        }
+
+    def clean_title(self):
+        result = scrub_public_text(self.cleaned_data.get("title") or "")
+        return result.text
+
+    def clean_description(self):
+        result = scrub_public_text(self.cleaned_data.get("description") or "")
+        return result.text
 
 
 class DealSheetForm(forms.ModelForm):
@@ -61,23 +86,46 @@ class DealSheetForm(forms.ModelForm):
         fields = [
             "meetup_city",
             "meetup_area",
+            "meetup_exact",
             "payment_preference",
             "dp_amount",
             "notes",
         ]
         labels = {
             "meetup_city": "Kota temu",
-            "meetup_area": "Area / patokan",
-            "payment_preference": "Cara bayar",
-            "dp_amount": "DP (opsional, jika cicilan)",
+            "meetup_area": "Area / patokan (publik ke penjual)",
+            "meetup_exact": "Alamat / pin exact (terkunci sampai biaya platform dibayar)",
+            "payment_preference": "Cara bayar unit",
+            "dp_amount": "DP unit (opsional, jika cicilan)",
             "notes": "Catatan",
         }
         widgets = {
             "meetup_city": forms.TextInput(attrs={"placeholder": "Jakarta"}),
-            "meetup_area": forms.TextInput(attrs={"placeholder": "Mall / Indomaret / rumah"}),
+            "meetup_area": forms.TextInput(attrs={"placeholder": "Kelapa Gading / mall"}),
+            "meetup_exact": forms.TextInput(
+                attrs={"placeholder": "Jl. … / patokan exact — terbuka setelah bayar biaya"}
+            ),
             "notes": forms.Textarea(attrs={"rows": 2, "placeholder": "Jadwal atau syarat nego"}),
             "dp_amount": forms.NumberInput(attrs={"placeholder": "5000000"}),
         }
+
+    def clean_notes(self):
+        result = scrub_public_text(self.cleaned_data.get("notes") or "")
+        return result.text
+
+
+class ListingMessageForm(forms.Form):
+    body = forms.CharField(
+        label="Pesan",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 2,
+                "placeholder": "Chat di NegoMotor saja — jangan kirim nomor / WA / IG",
+                "maxlength": 2000,
+            }
+        ),
+        max_length=2000,
+    )
 
 
 class FleetInquiryForm(forms.ModelForm):

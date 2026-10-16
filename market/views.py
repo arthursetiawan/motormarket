@@ -8,17 +8,25 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from ml.paths import IMPORTANCE_PATH, METRICS_PATH
 from ml.recommend import similar_listings
-from market.models import Bid, DealSheet, Motorcycle
+from market.models import Bid, DealSheet, ListingMessage, Motorcycle
+from market.services.contact_filter import filter_chat_message
 from market.services.desk import listing_desk, market_board
+from market.services.fees import fee_summary
 from market.services.fleet_intel import enrich_programs, market_coverage, pack_snapshot, recommend_pack
 from market.services.fleets import PROGRAMS
 from market.services.pricing import listings_frame, score_listing, suggest_fair_value
 from market.services.trust import TRUST_COPY, listing_trust
-from .forms import DealSheetForm, FleetInquiryForm, MotorcycleForm
+from market.services.unlock import (
+    buyer_has_paid_fee,
+    flag_bypass,
+    reveal_contact,
+    simulate_pay_fee,
+)
+from .forms import DealSheetForm, FleetInquiryForm, ListingMessageForm, MotorcycleForm
 
 TRUST_FILTERS = {"high_trust", "review", "caution"}
 
@@ -103,8 +111,45 @@ def motorcycle_detail(request, pk):
     trust = listing_trust(motorcycle)
     deal_form = DealSheetForm(initial={"meetup_city": motorcycle.city})
     deal_sheets = []
-    if request.user.is_authenticated and request.user == motorcycle.seller:
-        deal_sheets = list(motorcycle.deal_sheets.select_related("buyer")[:20])
+    my_deal = None
+    fee_paid = False
+    unlocked_contact = None
+    chat_messages = []
+    message_form = ListingMessageForm()
+    fees = fee_summary(motorcycle)
+
+    can_chat = False
+    reply_buyers = []
+    if request.user.is_authenticated:
+        fee_paid = buyer_has_paid_fee(motorcycle, request.user)
+        unlocked_contact = reveal_contact(motorcycle, request.user)
+        if request.user == motorcycle.seller:
+            deal_sheets = list(motorcycle.deal_sheets.select_related("buyer")[:20])
+            chat_messages = list(
+                motorcycle.messages.filter(was_blocked=False)
+                .select_related("sender", "recipient")[:100]
+            )
+            reply_buyers = list(
+                {
+                    m.sender_id: m.sender
+                    for m in chat_messages
+                    if m.sender_id != motorcycle.seller_id
+                }.values()
+            )
+            can_chat = bool(reply_buyers)
+        else:
+            my_deal = (
+                motorcycle.deal_sheets.filter(buyer=request.user).order_by("-created_at").first()
+            )
+            chat_messages = list(
+                motorcycle.messages.filter(was_blocked=False)
+                .filter(
+                    Q(sender=request.user, recipient=motorcycle.seller)
+                    | Q(sender=motorcycle.seller, recipient=request.user)
+                )
+                .select_related("sender", "recipient")[:100]
+            )
+            can_chat = True
 
     return render(
         request,
@@ -119,7 +164,15 @@ def motorcycle_detail(request, pk):
             "trust_copy": TRUST_COPY.get(trust.label, ""),
             "deal_form": deal_form,
             "deal_sheets": deal_sheets,
+            "my_deal": my_deal,
             "min_bid": float(highest_bid.amount) if highest_bid else float(motorcycle.start_price),
+            "fee": fees,
+            "fee_paid": fee_paid,
+            "unlocked_contact": unlocked_contact,
+            "chat_messages": chat_messages,
+            "message_form": message_form,
+            "can_chat": can_chat,
+            "reply_buyers": reply_buyers,
         },
     )
 
@@ -128,6 +181,7 @@ def motorcycle_detail(request, pk):
 def place_bid(request, pk):
     motorcycle = get_object_or_404(Motorcycle, pk=pk)
     amount = request.POST.get("amount")
+    fees = fee_summary(motorcycle)
     if amount:
         try:
             amount = float(amount)
@@ -148,7 +202,13 @@ def place_bid(request, pk):
                     )
             else:
                 bid = Bid.objects.create(motorcycle=motorcycle, bidder=request.user, amount=amount)
-                messages.success(request, "Tawaran berhasil dikirim")
+                messages.success(
+                    request,
+                    "Tawaran berhasil dikirim. Biaya platform pembeli ~"
+                    f"{fees['rate_pct']:.0f}% (min/max berlaku) dibayar saat unlock kontak — "
+                    f"estimasi saat ini Rp {int(fees['fee']):,}".replace(",", ".")
+                    + ".",
+                )
                 try:
                     channel_layer = get_channel_layer()
                     async_to_sync(channel_layer.group_send)(
@@ -185,9 +245,155 @@ def submit_deal_sheet(request, pk):
         sheet.motorcycle = motorcycle
         sheet.buyer = request.user
         sheet.save()
-        messages.success(request, "Lembar deal terkirim — penjual bisa lihat minat temu & cara bayar Anda.")
+        fees = fee_summary(motorcycle)
+        messages.success(
+            request,
+            "Lembar deal terkirim. Bayar biaya platform "
+            f"(~{fees['rate_pct']:.0f}%, sekarang Rp {int(fees['fee']):,})".replace(",", ".")
+            + " untuk buka kontak penjual & alamat exact.",
+        )
     else:
         messages.error(request, "Lembar deal belum lengkap. Cek kota temu dan cara bayar.")
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def send_listing_message(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    form = ListingMessageForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Pesan tidak valid.")
+        return redirect("motorcycle_detail", pk=pk)
+
+    # Seller may reply; buyers may message seller. No third-party spam.
+    is_seller = request.user == motorcycle.seller
+    if not is_seller:
+        # buyer path ok
+        pass
+    elif not motorcycle.messages.exists():
+        messages.error(request, "Belum ada pembeli yang chat — tunggu pesan masuk.")
+        return redirect("motorcycle_detail", pk=pk)
+
+    raw = form.cleaned_data["body"]
+    if is_seller:
+        from django.contrib.auth.models import User
+
+        buyer_id = request.POST.get("recipient_id")
+        recipient = get_object_or_404(User, pk=buyer_id)
+        if not motorcycle.messages.filter(sender=recipient).exists():
+            messages.error(request, "Pembeli tidak ditemukan di thread ini.")
+            return redirect("motorcycle_detail", pk=pk)
+    else:
+        recipient = motorcycle.seller
+
+    result = filter_chat_message(raw, strict_block=True)
+    if result.blocked:
+        ListingMessage.objects.create(
+            motorcycle=motorcycle,
+            sender=request.user,
+            recipient=recipient,
+            body=raw[:500],
+            was_redacted=True,
+            was_blocked=True,
+        )
+        flag_bypass(
+            user=request.user,
+            motorcycle=motorcycle,
+            reason="Attempted contact share in chat",
+            action="warn",
+        )
+        messages.error(request, result.reason)
+        return redirect("motorcycle_detail", pk=pk)
+
+    ListingMessage.objects.create(
+        motorcycle=motorcycle,
+        sender=request.user,
+        recipient=recipient,
+        body=result.text,
+        was_redacted=result.redacted,
+        was_blocked=False,
+    )
+    if result.redacted:
+        messages.warning(request, result.reason)
+    else:
+        messages.success(request, "Pesan terkirim.")
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def pay_platform_fee(request, pk):
+    """Simulated checkout — marks fee paid and unlocks contact."""
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    if request.user == motorcycle.seller:
+        messages.error(request, "Penjual tidak membayar biaya platform untuk listing sendiri.")
+        return redirect("motorcycle_detail", pk=pk)
+
+    deal = motorcycle.deal_sheets.filter(buyer=request.user).order_by("-created_at").first()
+    try:
+        fee = simulate_pay_fee(motorcycle=motorcycle, buyer=request.user, deal_sheet=deal)
+    except PermissionError as exc:
+        messages.error(request, str(exc))
+        return redirect("motorcycle_detail", pk=pk)
+
+    messages.success(
+        request,
+        f"Biaya platform Rp {int(fee.fee_amount):,}".replace(",", ".")
+        + " ditandai lunas (simulasi). Kontak & lokasi exact terbuka.",
+    )
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def mark_deal_closed(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    mode = request.POST.get("mode", "on_platform")
+    if request.user != motorcycle.seller and not buyer_has_paid_fee(motorcycle, request.user):
+        messages.error(request, "Hanya penjual atau pembeli yang sudah bayar biaya yang bisa menutup deal.")
+        return redirect("motorcycle_detail", pk=pk)
+
+    if mode == "on_platform":
+        motorcycle.deal_status = "closed_on_platform"
+        motorcycle.is_sold = True
+        if not motorcycle.sold_price:
+            highest = motorcycle.bids.order_by("-amount").first()
+            motorcycle.sold_price = highest.amount if highest else motorcycle.start_price
+        motorcycle.save(update_fields=["deal_status", "is_sold", "sold_price"])
+        DealSheet.objects.filter(motorcycle=motorcycle, status="unlocked").update(
+            status="closed_on_platform"
+        )
+        messages.success(request, "Deal ditandai selesai di NegoMotor — ada perlindungan platform.")
+    elif mode == "off_app":
+        motorcycle.deal_status = "sold_off_app"
+        motorcycle.is_sold = True
+        motorcycle.save(update_fields=["deal_status", "is_sold"])
+        messages.warning(
+            request,
+            "Deal ditandai di luar aplikasi — tidak ada perlindungan NegoMotor.",
+        )
+        if request.user != motorcycle.seller:
+            flag_bypass(
+                user=request.user,
+                motorcycle=motorcycle,
+                reason="Marked sold off-app",
+                action="warn",
+            )
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def report_bypass(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    reason = (request.POST.get("reason") or "User reported off-platform contact attempt").strip()[:240]
+    target_id = request.POST.get("user_id")
+    from django.contrib.auth.models import User
+
+    target = get_object_or_404(User, pk=target_id) if target_id else request.user
+    flag_bypass(user=target, motorcycle=motorcycle, reason=reason, action="warn")
+    messages.success(request, "Laporan bypass tercatat untuk ditinjau admin.")
     return redirect("motorcycle_detail", pk=pk)
 
 
@@ -235,7 +441,10 @@ def create_listing(request):
             listing.seller = request.user
             listing.save()
             score_listing(listing)
-            messages.success(request, "Listing dibuat dan dinilai terhadap model harga")
+            messages.success(
+                request,
+                "Listing dibuat. Nomor HP/WA hanya muncul setelah pembeli bayar biaya platform.",
+            )
             return redirect("motorcycle_detail", pk=listing.pk)
         suggestion = suggest_fair_value(form.data)
     else:
@@ -247,6 +456,10 @@ def create_listing(request):
 def profile(request):
     listings = Motorcycle.objects.filter(seller=request.user).select_related("prediction")
     return render(request, "account/profile.html", {"profile_user": request.user, "listings": listings})
+
+
+def terms(request):
+    return render(request, "market/terms.html")
 
 
 def fleets(request):
