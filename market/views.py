@@ -567,8 +567,9 @@ def create_listing(request):
         if form.is_valid():
             listing = form.save(commit=False)
             listing.seller = request.user
-            listing.is_published = listing.can_publish()
             listing.save()
+            listing.is_published = listing.can_publish()
+            listing.save(update_fields=["is_published"])
             score_listing(listing)
             score_listing_sentiment(listing)
             messages.success(
