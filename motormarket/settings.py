@@ -147,6 +147,12 @@ LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
 ACCOUNT_LOGOUT_REDIRECT = '/'
 
+# NegoMotor auction mashup (BaT-lite soft close / proxy)
+AUCTION_MIN_INCREMENT_IDR = os.environ.get('AUCTION_MIN_INCREMENT_IDR', '50000')
+AUCTION_SOFT_CLOSE_MINUTES = int(os.environ.get('AUCTION_SOFT_CLOSE_MINUTES', '2'))
+AUCTION_SOFT_CLOSE_EXTEND_MINUTES = int(os.environ.get('AUCTION_SOFT_CLOSE_EXTEND_MINUTES', '2'))
+AUCTION_MIN_CHECKLIST = int(os.environ.get('AUCTION_MIN_CHECKLIST', '3'))
+
 # REST framework defaults
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [

@@ -3,6 +3,22 @@ from django.contrib.auth.models import User
 
 
 class Motorcycle(models.Model):
+    GRADE_CHOICES = [
+        ("A", "Grade A — siap jalan"),
+        ("B", "Grade B — perlu perawatan ringan"),
+        ("C", "Grade C — perlu perbaikan"),
+    ]
+    STATUS_OPEN = "open"
+    STATUS_SOLD = "sold"
+    STATUS_RESERVE_NOT_MET = "reserve_not_met"
+    STATUS_ENDED = "ended"
+    AUCTION_STATUS_CHOICES = [
+        (STATUS_OPEN, "Lelang dibuka"),
+        (STATUS_SOLD, "Terjual"),
+        (STATUS_RESERVE_NOT_MET, "Reserve tidak tercapai"),
+        (STATUS_ENDED, "Selesai tanpa tawaran"),
+    ]
+
     CONDITION_CHOICES = [
         ("excellent", "Istimewa"),
         ("good", "Baik"),
@@ -62,6 +78,40 @@ class Motorcycle(models.Model):
         default="",
         help_text="Nomor polisi, e.g. B 1234 ABC",
     )
+    
+    # Auction (BaT-lite)
+    has_reserve = models.BooleanField(
+        default=False,
+        help_text="Jika False, badge Tanpa reserve. Reserve amount tetap disembunyikan dari buyer.",
+    )
+    reserve_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Hidden from buyers. Only used when has_reserve=True.",
+    )
+    buy_now_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Optional Beli Sekarang alongside lelang.",
+    )
+    ends_at = models.DateTimeField(null=True, blank=True)
+    auction_status = models.CharField(
+        max_length=20, choices=AUCTION_STATUS_CHOICES, default=STATUS_OPEN,
+    )
+    condition_grade = models.CharField(max_length=1, choices=GRADE_CHOICES, default="B")
+    known_flaws = models.TextField(
+        blank=True, default="", help_text="Kekurangan diketahui — forced disclosure for buyers.",
+    )
+    is_dealer = models.BooleanField(default=False, help_text="Dealer inventory vs C2C.")
+    is_published = models.BooleanField(
+        default=True, help_text="New listings require photo + checklist gate before True.",
+    )
+    checklist_front = models.BooleanField(default=False)
+    checklist_side = models.BooleanField(default=False)
+    checklist_odometer = models.BooleanField(default=False)
+    checklist_engine = models.BooleanField(default=False)
+    checklist_surat = models.BooleanField(default=False)
+    ppi_available = models.BooleanField(default=False, help_text="Seller allows cek unit / PPI request.")
+    ppi_notes = models.CharField(max_length=200, blank=True, default="")
+
     # Private seller contact — never shown on public detail until buyer fee unlock
     seller_phone = models.CharField(
         max_length=32,
@@ -124,6 +174,22 @@ class Motorcycle(models.Model):
         )
 
     @property
+
+    def checklist_score(self) -> int:
+        return sum(
+            [
+                self.checklist_front,
+                self.checklist_side,
+                self.checklist_odometer,
+                self.checklist_engine,
+                self.checklist_surat,
+            ]
+        )
+
+    def can_publish(self) -> bool:
+        has_photo = bool(self.image) or self.photos.exists()
+        return has_photo and self.checklist_score() >= 3
+
     def ojol_ready(self) -> bool:
         """Heuristic: matic ≥125cc, surat lengkap, not sold."""
         return (
@@ -138,7 +204,22 @@ class Bid(models.Model):
     motorcycle = models.ForeignKey(Motorcycle, related_name="bids", on_delete=models.CASCADE)
     bidder = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
+    max_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Proxy ceiling — private to system.",
+    )
+    is_proxy = models.BooleanField(default=False)
+    is_automatic = models.BooleanField(
+        default=False,
+        help_text="True when system auto-incremented to defend a max bid.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.bidder.username} - {self.amount}"
@@ -450,3 +531,99 @@ class ListingSentiment(models.Model):
 
     def __str__(self):
         return f"{self.motorcycle_id} {self.label} {self.score}"
+
+
+class Watchlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="watchlist")
+    motorcycle = models.ForeignKey(Motorcycle, on_delete=models.CASCADE, related_name="watchers")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "motorcycle")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} ♥ {self.motorcycle_id}"
+
+
+class ListingComment(models.Model):
+    """Public diligence Q&A thread on a listing."""
+
+    motorcycle = models.ForeignKey(Motorcycle, related_name="comments", on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="listing_comments")
+    body = models.TextField()
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        related_name="replies",
+        on_delete=models.CASCADE,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment by {self.author.username} on {self.motorcycle_id}"
+
+
+class ListingPhoto(models.Model):
+    motorcycle = models.ForeignKey(Motorcycle, related_name="photos", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="motorcycles/gallery/")
+    caption = models.CharField(max_length=120, blank=True, default="")
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+
+    def __str__(self):
+        return f"Photo {self.pk} · {self.motorcycle_id}"
+
+
+class InAppNotification(models.Model):
+    KIND_OUTBID = "outbid"
+    KIND_ENDING_SOON = "ending_soon"
+    KIND_SOLD = "sold"
+    KIND_COMMENT = "comment"
+    KIND_CHOICES = [
+        (KIND_OUTBID, "Digeser (outbid)"),
+        (KIND_ENDING_SOON, "Segera berakhir"),
+        (KIND_SOLD, "Terjual"),
+        (KIND_COMMENT, "Komentar baru"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    motorcycle = models.ForeignKey(
+        Motorcycle,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    message = models.CharField(max_length=280)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user_id} · {self.kind} · {self.message[:40]}"
+
+
+class PpiRequest(models.Model):
+    """Soft hook: buyer requests cek unit / PPI. No ops workflow yet."""
+
+    motorcycle = models.ForeignKey(Motorcycle, related_name="ppi_requests", on_delete=models.CASCADE)
+    requester = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ppi_requests")
+    note = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"PPI {self.motorcycle_id} · {self.requester.username}"

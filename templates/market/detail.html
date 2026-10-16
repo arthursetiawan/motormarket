@@ -126,6 +126,34 @@
       {% endif %}
     </div>
 
+    
+    {% if auction %}
+    <div class="fee-panel">
+      <h4>Lelang</h4>
+      <p class="meta">{{ auction.label }}{% if motorcycle.ends_at %} · berakhir {{ motorcycle.ends_at }}{% endif %}</p>
+      {% if not motorcycle.has_reserve %}<p class="chip-ok">Tanpa reserve</p>{% endif %}
+      {% if motorcycle.condition_grade %}<p>Grade kondisi: <strong>{{ motorcycle.condition_grade }}</strong></p>{% endif %}
+      {% if motorcycle.known_flaws %}<p class="meta">Kekurangan diketahui: {{ motorcycle.known_flaws }}</p>{% endif %}
+      {% if user.is_authenticated and motorcycle.auction_status == 'open' %}
+      <form method="post" action="{% url 'place_bid' motorcycle.pk %}" style="margin-top:10px">
+        {% csrf_token %}
+        {{ bid_form.as_p }}
+        <button class="btn" type="submit">Pasang proxy bid</button>
+      </form>
+      {% if motorcycle.buy_now_price %}
+      <form method="post" action="{% url 'buy_now' motorcycle.pk %}" style="margin-top:8px">
+        {% csrf_token %}
+        <button class="btn btn-secondary" type="submit">Beli Sekarang {{ motorcycle.buy_now_price|currency_idr }}</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{% url 'toggle_watch' motorcycle.pk %}" style="margin-top:8px">
+        {% csrf_token %}
+        <button class="btn btn-secondary" type="submit">{% if watching %}Hapus watchlist{% else %}+ Watchlist{% endif %}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+
     <p class="highest-bid">
       {% if highest_bid %}
         Tawaran tertinggi: {{ highest_bid.amount|currency_idr }} oleh {{ highest_bid.bidder.username }}
@@ -268,6 +296,36 @@
     {% endif %}
 
     
+    
+    <section class="chat-panel">
+      <h4>Tanya penjual (Q&amp;A)</h4>
+      {% for c in comments %}
+      <div class="chat-bubble">
+        <strong>{{ c.author.username }}</strong>
+        <p>{{ c.body }}</p>
+        {% for r in c.replies.all %}
+        <div class="chat-bubble" style="margin-left:12px"><strong>{{ r.author.username }}</strong><p>{{ r.body }}</p></div>
+        {% endfor %}
+      </div>
+      {% empty %}
+      <p class="meta">Belum ada pertanyaan.</p>
+      {% endfor %}
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'add_comment' motorcycle.pk %}">
+        {% csrf_token %}
+        {{ comment_form.as_p }}
+        <button class="btn" type="submit">Kirim</button>
+      </form>
+      {% if motorcycle.ppi_available %}
+      <form method="post" action="{% url 'request_ppi' motorcycle.pk %}" style="margin-top:10px">
+        {% csrf_token %}
+        {{ ppi_form.as_p }}
+        <button class="btn btn-secondary" type="submit">Request cek unit</button>
+      </form>
+      {% endif %}
+      {% endif %}
+    </section>
+
     {% if close_form %}
     <section class="close-deal-panel">
       <h4>Tutup deal + buka rating</h4>

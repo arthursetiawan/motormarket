@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load thumb_tags %}
+{% load price_tags %}
+
+{% block title %}Watchlist — NegoMotor{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <h1>Watchlist</h1>
+  <p class="tagline">Unit yang Anda pantau — cek notifikasi untuk outbid &amp; ending soon.</p>
+</header>
+
+<section class="grid">
+  {% for item in items %}
+  {% with m=item.motorcycle %}
+  <article class="card">
+    {% listing_photo m as photo %}
+    <a class="card-media" href="{% url 'motorcycle_detail' m.pk %}">
+      <img src="{{ photo }}" alt="{{ m.title }}">
+    </a>
+    <div class="card-body">
+      {% if not m.has_reserve %}<span class="badge badge-great_deal">Tanpa reserve</span>{% endif %}
+      <span class="badge">Grade {{ m.condition_grade }}</span>
+      <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>
+      <p class="price"><span class="price-label">Harga awal</span>{{ m.start_price|currency_idr }}</p>
+      {% if m.ends_at %}<p class="meta">Berakhir {{ m.ends_at|date:"d M H:i" }}</p>{% endif %}
+    </div>
+  </article>
+  {% endwith %}
+  {% empty %}
+  <p class="empty-state">Watchlist kosong. Tambahkan dari halaman detail.</p>
+  {% endfor %}
+</section>
+{% endblock %}

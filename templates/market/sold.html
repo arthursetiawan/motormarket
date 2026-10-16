@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load thumb_tags %}
+{% load humanize %}
+{% load price_tags %}
+
+{% block title %}Terjual — NegoMotor{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <h1>Arsip terjual</h1>
+  <p class="tagline">Hasil lelang sebagai comps mentah untuk estimasi harga nanti.</p>
+</header>
+
+<section class="grid">
+  {% for m in motorcycles %}
+  <article class="card">
+    {% listing_photo m as photo %}
+    <a class="card-media" href="{% url 'motorcycle_detail' m.pk %}">
+      <img src="{{ photo }}" alt="{{ m.title }}">
+    </a>
+    <div class="card-body">
+      <span class="badge badge-good_deal">Terjual</span>
+      <span class="badge">Grade {{ m.condition_grade }}</span>
+      <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>
+      <p class="meta meta-dense">
+        {% if m.year %}{{ m.year }}{% endif %}
+        {% if m.make %} · {{ m.make }}{% endif %}
+        {% if m.city %} · {{ m.city }}{% endif %}
+      </p>
+      <p class="price">
+        <span class="price-label">Sold</span>
+        {% if m.sold_price %}{{ m.sold_price|currency_idr }}{% else %}{{ m.start_price|currency_idr }}{% endif %}
+      </p>
+    </div>
+  </article>
+  {% empty %}
+  <p class="empty-state">Belum ada unit terjual di arsip.</p>
+  {% endfor %}
+</section>
+
+{% if motorcycles.paginator.num_pages > 1 %}
+<div class="pagination">
+  {% if motorcycles.has_previous %}
+    <a href="?page={{ motorcycles.previous_page_number }}" class="btn">Prev</a>
+  {% endif %}
+  <span>Page {{ motorcycles.number }} of {{ motorcycles.paginator.num_pages }}</span>
+  {% if motorcycles.has_next %}
+    <a href="?page={{ motorcycles.next_page_number }}" class="btn">Next</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
