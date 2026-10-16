@@ -17,6 +17,12 @@ class ListingPredictionSerializer(serializers.ModelSerializer):
             "trust_label",
             "trust_flags",
             "trust_completeness",
+            "anomaly_score",
+            "anomaly_label",
+            "anomaly_flags",
+            "anomaly_confidence",
+            "anomaly_peer_n",
+            "anomaly_peer_source",
         ]
 
 

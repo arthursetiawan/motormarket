@@ -76,6 +76,24 @@
     </div>
     {% endif %}
 
+    {% if anomaly %}
+    <div class="anomaly-panel anomaly-panel-{{ anomaly.label }}">
+      <p class="trust-head">
+        <span class="badge anomaly-{{ anomaly.label }}">{{ anomaly.label|anomaly_name }}</span>
+        <strong>Skor {{ anomaly.score }}</strong>
+      </p>
+      <p class="meta">{{ anomaly_copy }}</p>
+      <p class="meta">Peer comps: {{ anomaly.peer_n }} ({{ anomaly.peer_source }} · conf {{ anomaly.confidence }})</p>
+      {% if anomaly.flags %}
+      <ul class="trust-flags">
+        {% for flag in anomaly.flags %}
+        <li class="flag-{{ flag.severity }}">{{ flag.message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endif %}
+
     <p>{{ motorcycle.description }}</p>
     <p class="meta policy-hint">Kontak penjual tidak ditampilkan di listing. Chat di NegoMotor dulu — <a href="{% url 'terms' %}">ketentuan anti-bypass</a>.</p>
 

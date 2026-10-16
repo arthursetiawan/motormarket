@@ -38,11 +38,18 @@
       <option value="">Semua surat</option>
       <option value="lengkap" {% if request.GET.surat == 'lengkap' %}selected{% endif %}>Surat lengkap</option>
     </select>
+    <select name="anomaly">
+      <option value="">Semua pasar</option>
+      <option value="ok" {% if request.GET.anomaly == 'ok' %}selected{% endif %}>OK pasar</option>
+      <option value="waspada" {% if request.GET.anomaly == 'waspada' %}selected{% endif %}>Waspada</option>
+      <option value="waspada_tinggi" {% if request.GET.anomaly == 'waspada_tinggi' %}selected{% endif %}>Waspada tinggi</option>
+    </select>
     <input type="number" name="year" placeholder="Tahun" value="{{ request.GET.year }}">
     <select name="sort">
       <option value="">Terbaru</option>
       <option value="deal" {% if request.GET.sort == 'deal' %}selected{% endif %}>Deal terbaik</option>
       <option value="trust" {% if request.GET.sort == 'trust' %}selected{% endif %}>Trust tertinggi</option>
+      <option value="anomaly" {% if request.GET.sort == 'anomaly' %}selected{% endif %}>Paling anomali</option>
       <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Harga ↑</option>
       <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Harga ↓</option>
     </select>
@@ -59,6 +66,9 @@
     <span class="badge badge-{{ m.prediction.deal_label }}">{{ m.prediction.deal_label|deal_name }}</span>
     {% if m.prediction.trust_label %}
     <span class="badge trust-{{ m.prediction.trust_label }}">{{ m.prediction.trust_label|trust_name }}</span>
+    {% endif %}
+    {% if m.prediction.anomaly_label and m.prediction.anomaly_label != 'ok' %}
+    <span class="badge anomaly-{{ m.prediction.anomaly_label }}">{{ m.prediction.anomaly_label|anomaly_name }}</span>
     {% endif %}
     {% endif %}
     <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>

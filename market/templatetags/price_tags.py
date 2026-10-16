@@ -35,6 +35,12 @@ CONDITION_NAMES = {
     "poor": "Kurang",
 }
 
+ANOMALY_NAMES = {
+    "ok": "OK pasar",
+    "waspada": "Waspada",
+    "waspada_tinggi": "Waspada tinggi",
+}
+
 
 @register.filter
 def currency_idr(value):
@@ -68,6 +74,11 @@ def fuel_name(value):
 @register.filter
 def condition_name(value):
     return CONDITION_NAMES.get(value, value or "")
+
+
+@register.filter
+def anomaly_name(value):
+    return ANOMALY_NAMES.get(value, value or "")
 
 
 @register.filter

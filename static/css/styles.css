@@ -97,6 +97,13 @@ body{font-family:Inter,ui-sans-serif,system-ui, -apple-system, 'Segoe UI', Robot
 .trust-flags .flag-info{color:#0369a1}
 .trust-flags .flag-watch{color:#b45309}
 .trust-flags .flag-alert{color:#b91c1c; font-weight:600}
+.badge.anomaly-ok{background:#e2e8f0; color:#334155}
+.badge.anomaly-waspada{background:#ffedd5; color:#9a3412}
+.badge.anomaly-waspada_tinggi{background:#fee2e2; color:#9f1239}
+.anomaly-panel{border-left:4px solid #cbd5e1; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin:12px 0; background:#f8fafc}
+.anomaly-panel-waspada{border-left:4px solid #ea580c}
+.anomaly-panel-waspada_tinggi{border-left:4px solid #be123c}
+
 .surat-chips .chip-ok{background:#dcfce7; color:#166534}
 .surat-chips .chip-alert{background:#fee2e2; color:#991b1b}
 .deal-sheet-panel,.deal-sheet-list{margin-top:20px; padding:14px; border:1px solid #e5e7eb; border-radius:10px; background:#fff}

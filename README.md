@@ -66,6 +66,7 @@ Model documentation: `artifacts/reports/MODEL_CARD.md`.
 - Bahasa-first chrome: Lelang / Jual / Armada, estimasi harga, Matic / Bensin
 - Listing fair value + deal badges (price model)
 - Listing trust score persisted on score (`ListingPrediction.trust_*`); filter listings with `?trust=caution`
+- Market anomaly / **waspada** from peer bands + catalog (`ListingPrediction.anomaly_*`); filter `?anomaly=waspada`
 - Seller suggested ask on create (`/market/suggest-ask/`, create page panel)
 - Fleet pack recommendations + city demand index; inquiries store `pack_snapshot` JSON
 - Surat checklist (STNK / BPKB / pajak / plat) + trust score on detail (`ml/trust.py`)
@@ -73,7 +74,8 @@ Model documentation: `artifacts/reports/MODEL_CARD.md`.
 - Bids must beat current highest
 - Bebek segment in `ml/catalog.py` (Supra X, Revo, Jupiter, Vega, Smash…)
 - Fleet packs: `exclude_caution` + `ojol_ready` filters
-- API: `GET /api/motorcycles/<id>/trust/`, `GET /api/fleets/pack/?program=delivery&size=25&exclude_caution=1&ojol_ready=1`, `GET /api/fleets/coverage/`
+- Market anomaly / waspada badges on score (`ListingPrediction.anomaly_*`)
+- API: `GET /api/motorcycles/<id>/trust/`, `.../anomaly/`, `GET /api/fleets/pack/?program=delivery&size=25&exclude_caution=1&ojol_ready=1`, `GET /api/fleets/coverage/`
 
 **How to verify**
 
