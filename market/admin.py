@@ -6,13 +6,18 @@ from .models import (
     ClosedDeal,
     DealSheet,
     FleetInquiry,
+    InAppNotification,
+    ListingComment,
     ListingMessage,
+    ListingPhoto,
     ListingPrediction,
     ListingSentiment,
     Motorcycle,
     PlatformFee,
+    PpiRequest,
     UserRating,
     UserSafetyProfile,
+    Watchlist,
 )
 
 
@@ -27,6 +32,9 @@ class MotorcycleAdmin(admin.ModelAdmin):
         "stnk_status",
         "bpkb_status",
         "pajak_mati",
+        "condition_grade",
+        "auction_status",
+        "is_dealer",
         "deal_status",
         "condition",
         "seller",
@@ -178,4 +186,31 @@ class UserRatingAdmin(admin.ModelAdmin):
 class ListingSentimentAdmin(admin.ModelAdmin):
     list_display = ("motorcycle", "label", "score", "method_version", "scored_at")
     list_filter = ("label",)
+
+
+@admin.register(Watchlist)
+class WatchlistAdmin(admin.ModelAdmin):
+    list_display = ("user", "motorcycle", "created_at")
+
+
+@admin.register(ListingComment)
+class ListingCommentAdmin(admin.ModelAdmin):
+    list_display = ("motorcycle", "author", "created_at")
+    search_fields = ("body", "author__username")
+
+
+@admin.register(ListingPhoto)
+class ListingPhotoAdmin(admin.ModelAdmin):
+    list_display = ("motorcycle", "caption", "sort_order")
+
+
+@admin.register(InAppNotification)
+class InAppNotificationAdmin(admin.ModelAdmin):
+    list_display = ("user", "kind", "motorcycle", "is_read", "created_at")
+    list_filter = ("kind", "is_read")
+
+
+@admin.register(PpiRequest)
+class PpiRequestAdmin(admin.ModelAdmin):
+    list_display = ("motorcycle", "requester", "created_at")
 

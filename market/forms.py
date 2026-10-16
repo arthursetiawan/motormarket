@@ -3,7 +3,7 @@ from django import forms
 
 from market.services.contact_filter import scrub_public_text
 
-from .models import DealSheet, FleetInquiry, ListingMessage, Motorcycle, UserRating
+from .models import DealSheet, FleetInquiry, ListingComment, ListingMessage, Motorcycle, PpiRequest, UserRating
 
 
 class MotorcycleForm(forms.ModelForm):
@@ -28,6 +28,20 @@ class MotorcycleForm(forms.ModelForm):
             "pajak_mati",
             "tax_valid_through",
             "plate_number",
+            "condition_grade",
+            "known_flaws",
+            "has_reserve",
+            "reserve_price",
+            "buy_now_price",
+            "ends_at",
+            "is_dealer",
+            "checklist_front",
+            "checklist_side",
+            "checklist_odometer",
+            "checklist_engine",
+            "checklist_surat",
+            "ppi_available",
+            "ppi_notes",
             "seller_phone",
             "seller_wa",
             "image",
@@ -212,5 +226,37 @@ class UserRatingForm(forms.ModelForm):
                     "maxlength": 400,
                     "placeholder": "Contoh: Penjual responsif, motor sesuai deskripsi.",
                 }
+            ),
+        }
+
+class ProxyBidForm(forms.Form):
+    max_amount = forms.DecimalField(
+        min_value=0,
+        max_digits=12,
+        decimal_places=0,
+        label="Tawaran maksimum (proxy)",
+        help_text="Sistem menawar otomatis hingga batas ini.",
+        widget=forms.NumberInput(attrs={"placeholder": "Contoh: 18500000", "step": "50000"}),
+    )
+
+class ListingCommentForm(forms.ModelForm):
+    class Meta:
+        model = ListingComment
+        fields = ["body"]
+        labels = {"body": "Tanya penjual / komentar"}
+        widgets = {
+            "body": forms.Textarea(
+                attrs={"rows": 3, "placeholder": "Tanya soal surat, service, atau kekurangan…"}
+            ),
+        }
+
+class PpiRequestForm(forms.ModelForm):
+    class Meta:
+        model = PpiRequest
+        fields = ["note"]
+        labels = {"note": "Catatan cek unit"}
+        widgets = {
+            "note": forms.Textarea(
+                attrs={"rows": 2, "placeholder": "Kapan dan di mana Anda ingin cek unit?"}
             ),
         }

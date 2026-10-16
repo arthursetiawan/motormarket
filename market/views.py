@@ -8,16 +8,25 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from ml.paths import IMPORTANCE_PATH, METRICS_PATH
 from ml.recommend import similar_listings
-from market.models import Bid, ClosedDeal, DealSheet, ListingMessage, Motorcycle, UserRating
+from market.models import Bid, ClosedDeal, DealSheet, InAppNotification, ListingComment, ListingMessage, Motorcycle, UserRating, Watchlist
 from market.services.contact_filter import filter_chat_message
 from market.services.desk import listing_desk, market_board
 from market.services.fees import fee_summary
 from market.services.fleet_intel import enrich_programs, market_coverage, pack_snapshot, recommend_pack
 from market.services.fleets import PROGRAMS
+from market.services.auction import (
+    auction_badge,
+    buy_now,
+    current_high_bid,
+    ensure_auction_window,
+    place_proxy_bid,
+    surat_announcements,
+)
 from market.services.anomaly import ANOMALY_COPY, anomaly_from_prediction, listing_anomaly
 from market.services.pricing import listings_frame, score_listing, suggest_fair_value
 from market.services.ratings import (
@@ -41,14 +50,20 @@ from market.services.unlock import (
     reveal_contact,
     simulate_pay_fee,
 )
-from .forms import CloseDealForm, DealSheetForm, FleetInquiryForm, ListingMessageForm, MotorcycleForm, UserRatingForm
+from .forms import CloseDealForm, DealSheetForm, FleetInquiryForm, ListingCommentForm, ListingMessageForm, MotorcycleForm, PpiRequestForm, ProxyBidForm, UserRatingForm
 
 TRUST_FILTERS = {"high_trust", "review", "caution"}
 ANOMALY_FILTERS = {"ok", "waspada", "waspada_tinggi"}
 
 
+def _live_qs():
+    return Motorcycle.objects.filter(is_published=True).exclude(
+        auction_status=Motorcycle.STATUS_ENDED,
+    )
+
+
 def index(request):
-    qs = Motorcycle.objects.all().order_by("-created_at")
+    qs = _live_qs().order_by("-created_at")
 
     make = request.GET.get("make")
     year = request.GET.get("year")
@@ -59,6 +74,8 @@ def index(request):
     q = request.GET.get("q")
     sort = request.GET.get("sort")
     surat = request.GET.get("surat")
+    grade = request.GET.get("grade")
+    dealer = request.GET.get("dealer")
 
     if make:
         qs = qs.filter(make__iexact=make)
@@ -78,6 +95,12 @@ def index(request):
         )
     if anomaly in ANOMALY_FILTERS:
         qs = qs.filter(prediction__anomaly_label=anomaly)
+    if grade in ("A", "B", "C"):
+        qs = qs.filter(condition_grade=grade)
+    if dealer == "1":
+        qs = qs.filter(is_dealer=True)
+    elif dealer == "0":
+        qs = qs.filter(is_dealer=False)
     if q:
         qs = qs.filter(
             Q(title__icontains=q)
@@ -95,6 +118,8 @@ def index(request):
         qs = qs.order_by("-prediction__trust_score")
     elif sort == "anomaly":
         qs = qs.order_by("prediction__anomaly_score")
+    elif sort == "ending":
+        qs = qs.order_by("ends_at")
 
     paginator = Paginator(qs.select_related("prediction"), 12)
     motorcycles = paginator.get_page(request.GET.get("page"))
@@ -173,6 +198,14 @@ def motorcycle_detail(request, pk):
             can_chat = True
 
     anomaly = anomaly_from_prediction(prediction) or listing_anomaly(motorcycle)
+    comments = (
+        motorcycle.comments.filter(parent__isnull=True)
+        .select_related("author")
+        .prefetch_related("replies__author")
+    )
+    watching = False
+    if request.user.is_authenticated:
+        watching = Watchlist.objects.filter(user=request.user, motorcycle=motorcycle).exists()
     sentiment = listing_sentiment(motorcycle)
     seller_rep = reputation_for(motorcycle.seller)
     seller_sent = seller_listing_sentiment(motorcycle.seller)
@@ -219,6 +252,13 @@ def motorcycle_detail(request, pk):
             "closed_deal": closed,
             "close_form": close_form,
             "rate_form": rate_form,
+            "auction": auction_badge(motorcycle),
+            "surat_flags": surat_announcements(motorcycle),
+            "bid_form": ProxyBidForm(),
+            "comment_form": ListingCommentForm(),
+            "ppi_form": PpiRequestForm(),
+            "comments": comments,
+            "watching": watching,
         },
     )
 
@@ -226,7 +266,36 @@ def motorcycle_detail(request, pk):
 @login_required
 def place_bid(request, pk):
     motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    if request.POST.get("max_amount"):
+        form = ProxyBidForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Tawaran tidak valid.")
+            return redirect("motorcycle_detail", pk=pk)
+        try:
+            bid, msg = place_proxy_bid(motorcycle, request.user, form.cleaned_data["max_amount"])
+            messages.success(request, msg)
+            try:
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    "auctions",
+                    {
+                        "type": "auction.message",
+                        "message": {
+                            "type": "new_bid",
+                            "motorcycle": motorcycle.pk,
+                            "amount": str(bid.amount),
+                            "bidder": bid.bidder.username,
+                        },
+                    },
+                )
+            except Exception:
+                pass
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        return redirect("motorcycle_detail", pk=pk)
+
     amount = request.POST.get("amount")
+
     fees = fee_summary(motorcycle)
     if amount:
         try:
@@ -458,7 +527,7 @@ def report_bypass(request, pk):
 
 def home(request):
     board = market_board()
-    featured = Motorcycle.objects.select_related("prediction").order_by("-created_at")[:3]
+    featured = _live_qs().filter(auction_status=Motorcycle.STATUS_OPEN).select_related("prediction").order_by("-created_at")[:3]
     return render(
         request,
         "home.html",
@@ -498,6 +567,7 @@ def create_listing(request):
         if form.is_valid():
             listing = form.save(commit=False)
             listing.seller = request.user
+            listing.is_published = listing.can_publish()
             listing.save()
             score_listing(listing)
             score_listing_sentiment(listing)
@@ -625,6 +695,123 @@ def rate_deal(request, deal_id):
             "ratee_role": counterpart_role(request.user, deal),
         },
     )
+
+
+def sold_archive(request):
+    qs = Motorcycle.objects.filter(
+        Q(is_sold=True) | Q(auction_status=Motorcycle.STATUS_SOLD)
+    ).order_by("-ends_at", "-created_at")
+    paginator = Paginator(qs.select_related("prediction", "seller"), 12)
+    motorcycles = paginator.get_page(request.GET.get("page"))
+    return render(request, "market/sold.html", {"motorcycles": motorcycles})
+
+
+@login_required
+def buy_now_view(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    if request.method != "POST":
+        return redirect("motorcycle_detail", pk=pk)
+    try:
+        buy_now(motorcycle, request.user)
+        messages.success(request, "Beli Sekarang berhasil — unit terjual.")
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+def toggle_watch(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    watch, created = Watchlist.objects.get_or_create(user=request.user, motorcycle=motorcycle)
+    if created:
+        messages.success(request, "Ditambahkan ke watchlist.")
+    else:
+        watch.delete()
+        messages.info(request, "Dihapus dari watchlist.")
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+def add_comment(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    form = ListingCommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.motorcycle = motorcycle
+        comment.author = request.user
+        parent_id = request.POST.get("parent")
+        if parent_id:
+            parent = ListingComment.objects.filter(pk=parent_id, motorcycle=motorcycle).first()
+            comment.parent = parent
+        comment.save()
+        if request.user_id != motorcycle.seller_id:
+            InAppNotification.objects.create(
+                user=motorcycle.seller,
+                kind=InAppNotification.KIND_COMMENT,
+                motorcycle=motorcycle,
+                message=f"Komentar baru di {motorcycle.title} dari {request.user.username}.",
+            )
+        messages.success(request, "Komentar dipublikasikan.")
+    else:
+        messages.error(request, "Komentar tidak valid.")
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+def request_ppi(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    if not motorcycle.ppi_available:
+        messages.error(request, "Penjual belum membuka request cek unit.")
+        return redirect("motorcycle_detail", pk=pk)
+    form = PpiRequestForm(request.POST)
+    if form.is_valid():
+        req = form.save(commit=False)
+        req.motorcycle = motorcycle
+        req.requester = request.user
+        req.save()
+        InAppNotification.objects.create(
+            user=motorcycle.seller,
+            kind=InAppNotification.KIND_COMMENT,
+            motorcycle=motorcycle,
+            message=f"Request cek unit dari {request.user.username}.",
+        )
+        messages.success(request, "Request cek unit terkirim ke penjual.")
+    else:
+        messages.error(request, "Request tidak valid.")
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+def notifications(request):
+    qs = InAppNotification.objects.filter(user=request.user).select_related("motorcycle")
+    if request.method == "POST" and request.POST.get("mark_all"):
+        qs.filter(is_read=False).update(is_read=True)
+        messages.success(request, "Semua notifikasi ditandai sudah dibaca.")
+        return redirect("notifications")
+    # Mark ending-soon for watched open auctions within 1h
+    for watch in Watchlist.objects.filter(user=request.user).select_related("motorcycle"):
+        m = watch.motorcycle
+        if m.ends_at and m.auction_status == Motorcycle.STATUS_OPEN:
+            remaining = m.ends_at - timezone.now()
+            if 0 < remaining.total_seconds() <= 3600:
+                InAppNotification.objects.get_or_create(
+                    user=request.user,
+                    motorcycle=m,
+                    kind=InAppNotification.KIND_ENDING_SOON,
+                    defaults={"message": f"Lelang {m.title} segera berakhir."},
+                )
+    qs = InAppNotification.objects.filter(user=request.user).select_related("motorcycle")
+    return render(request, "market/notifications.html", {"notifications": qs[:50]})
+
+
+@login_required
+def watchlist_view(request):
+    items = (
+        Watchlist.objects.filter(user=request.user)
+        .select_related("motorcycle", "motorcycle__prediction")
+        .order_by("-created_at")
+    )
+    return render(request, "market/watchlist.html", {"items": items})
 
 
 def terms(request):

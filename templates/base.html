@@ -18,10 +18,13 @@
         </a>
         <nav class="site-nav" aria-label="Utama">
           <a href="{% url 'index' %}">Lelang</a>
+          <a href="{% url 'sold_archive' %}">Terjual</a>
           <a href="{% url 'insights' %}">Insight</a>
           <a href="{% url 'fleets' %}">Armada</a>
           {% if user.is_authenticated %}
             <a href="{% url 'profile' %}">Profil</a>
+          <a href="{% url 'watchlist' %}">Watchlist</a>
+          <a href="{% url 'notifications' %}">Notifikasi</a>
             <a href="{% url 'create_listing' %}">Jual</a>
             <a href="{% url 'account_logout' %}">Keluar</a>
           {% else %}

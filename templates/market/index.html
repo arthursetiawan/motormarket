@@ -38,6 +38,17 @@
       <option value="">Semua surat</option>
       <option value="lengkap" {% if request.GET.surat == 'lengkap' %}selected{% endif %}>Surat lengkap</option>
     </select>
+    <select name="grade">
+      <option value="">Semua grade</option>
+      <option value="A" {% if request.GET.grade == 'A' %}selected{% endif %}>Grade A</option>
+      <option value="B" {% if request.GET.grade == 'B' %}selected{% endif %}>Grade B</option>
+      <option value="C" {% if request.GET.grade == 'C' %}selected{% endif %}>Grade C</option>
+    </select>
+    <select name="dealer">
+      <option value="">Dealer / C2C</option>
+      <option value="1" {% if request.GET.dealer == '1' %}selected{% endif %}>Dealer</option>
+      <option value="0" {% if request.GET.dealer == '0' %}selected{% endif %}>C2C</option>
+    </select>
     <select name="anomaly">
       <option value="">Semua pasar</option>
       <option value="ok" {% if request.GET.anomaly == 'ok' %}selected{% endif %}>OK pasar</option>
@@ -50,6 +61,7 @@
       <option value="deal" {% if request.GET.sort == 'deal' %}selected{% endif %}>Deal terbaik</option>
       <option value="trust" {% if request.GET.sort == 'trust' %}selected{% endif %}>Trust tertinggi</option>
       <option value="anomaly" {% if request.GET.sort == 'anomaly' %}selected{% endif %}>Paling anomali</option>
+      <option value="ending" {% if request.GET.sort == 'ending' %}selected{% endif %}>Segera berakhir</option>
       <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Harga ↑</option>
       <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Harga ↓</option>
     </select>
@@ -70,6 +82,9 @@
     {% if m.prediction.anomaly_label and m.prediction.anomaly_label != 'ok' %}
     <span class="badge anomaly-{{ m.prediction.anomaly_label }}">{{ m.prediction.anomaly_label|anomaly_name }}</span>
     {% endif %}
+    {% if m.condition_grade %}<span class="badge">Grade {{ m.condition_grade }}</span>{% endif %}
+    {% if not m.has_reserve %}<span class="badge">Tanpa reserve</span>{% endif %}
+    {% if m.is_dealer %}<span class="badge">Dealer</span>{% else %}<span class="badge">C2C</span>{% endif %}
     {% endif %}
     <h2 class="card-title"><a href="{% url 'motorcycle_detail' m.pk %}">{{ m.title }}</a></h2>
     <p class="meta">{{ m.make }} {{ m.model_name }} · {{ m.city }} · {{ m.mileage_km|default:0 }} km</p>

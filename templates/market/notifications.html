@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Notifikasi — NegoMotor{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <h1>Notifikasi</h1>
+  <p class="tagline">Outbid, segera berakhir, dan sinyal lelang lainnya (in-app).</p>
+</header>
+
+<form method="post" style="margin-bottom:16px">
+  {% csrf_token %}
+  <button class="btn" type="submit" name="mark_all" value="1">Tandai semua dibaca</button>
+</form>
+
+<ul class="messages" style="list-style:none;padding:0">
+  {% for n in notifications %}
+  <li class="{% if n.is_read %}{% else %}success{% endif %}" style="margin-bottom:10px;padding:12px;border:1px solid var(--line);border-radius:var(--radius)">
+    <span class="meta">{{ n.get_kind_display }} · {{ n.created_at|date:"d M Y H:i" }}</span>
+    <p style="margin:4px 0 0">{{ n.message }}</p>
+    {% if n.motorcycle %}
+    <a href="{% url 'motorcycle_detail' n.motorcycle_id %}">Buka listing →</a>
+    {% endif %}
+  </li>
+  {% empty %}
+  <li class="empty-state">Belum ada notifikasi.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
