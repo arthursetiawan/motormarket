@@ -15,5 +15,8 @@ urlpatterns = [
     path('motorcycle/<int:pk>/message/', views.send_listing_message, name='send_listing_message'),
     path('motorcycle/<int:pk>/pay-fee/', views.pay_platform_fee, name='pay_platform_fee'),
     path('motorcycle/<int:pk>/close-deal/', views.mark_deal_closed, name='mark_deal_closed'),
+    path('motorcycle/<int:pk>/close-sold/', views.close_listing_deal, name='close_listing_deal'),
+    path('deals/<int:deal_id>/rate/', views.rate_deal, name='rate_deal'),
+    path('u/<str:username>/', views.public_profile, name='public_profile'),
     path('motorcycle/<int:pk>/report-bypass/', views.report_bypass, name='report_bypass'),
 ]

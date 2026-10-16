@@ -365,3 +365,88 @@ class UserSafetyProfile(models.Model):
 
     def __str__(self):
         return f"Safety {self.user.username}"
+
+class ClosedDeal(models.Model):
+    """On-platform completed sale — gate for buyer↔seller ratings.
+
+    Close signal on current `dev`: seller marks listing sold with a buyer
+    (usually the winning bidder). When commission/unlock lands, fee-paid
+    wins can also create/close a deal without changing rating rules.
+    """
+
+    motorcycle = models.OneToOneField(
+        Motorcycle, related_name="closed_deal", on_delete=models.CASCADE
+    )
+    seller = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="deals_as_seller", on_delete=models.CASCADE
+    )
+    buyer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="deals_as_buyer", on_delete=models.CASCADE
+    )
+    winning_bid = models.ForeignKey(
+        Bid, related_name="closed_deals", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    sale_price = models.DecimalField(max_digits=12, decimal_places=2)
+    closed_at = models.DateTimeField(auto_now_add=True)
+    notes = models.CharField(max_length=200, blank=True, default="")
+
+    class Meta:
+        ordering = ["-closed_at"]
+
+    def __str__(self):
+        return f"Deal #{self.pk} · {self.motorcycle_id} · {self.buyer_id}←{self.seller_id}"
+
+class UserRating(models.Model):
+    """One star rating per party per closed deal (Uber / FB Marketplace style)."""
+
+    ROLE_SELLER = "seller"
+    ROLE_BUYER = "buyer"
+    ROLE_CHOICES = [
+        (ROLE_SELLER, "Sebagai penjual"),
+        (ROLE_BUYER, "Sebagai pembeli"),
+    ]
+
+    deal = models.ForeignKey(ClosedDeal, related_name="ratings", on_delete=models.CASCADE)
+    rater = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="ratings_given", on_delete=models.CASCADE
+    )
+    ratee = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="ratings_received", on_delete=models.CASCADE
+    )
+    # Perspective of the ratee for this deal (seller or buyer).
+    ratee_role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    review = models.CharField(max_length=400, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["deal", "rater"], name="uniq_rating_per_deal_rater"),
+        ]
+
+    def __str__(self):
+        return f"{self.rater_id}→{self.ratee_id} ({self.ratee_role}) {self.score}★"
+
+class ListingSentiment(models.Model):
+    """Persisted tone/trust score for listing title + description."""
+
+    LABEL_CHOICES = [
+        ("professional", "Jelas / profesional"),
+        ("mixed", "Campuran"),
+        ("caution", "Agresif / spam"),
+    ]
+
+    motorcycle = models.OneToOneField(
+        Motorcycle, related_name="sentiment", on_delete=models.CASCADE
+    )
+    score = models.FloatField(help_text="0–100; higher is clearer / more professional")
+    label = models.CharField(max_length=20, choices=LABEL_CHOICES)
+    signals = models.JSONField(default=list, blank=True)
+    method_version = models.CharField(max_length=32, default="lexicon_v1")
+    scored_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.motorcycle_id} {self.label} {self.score}"

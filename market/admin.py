@@ -3,12 +3,15 @@ from django.contrib import admin
 from .models import (
     Bid,
     BypassFlag,
+    ClosedDeal,
     DealSheet,
     FleetInquiry,
     ListingMessage,
     ListingPrediction,
+    ListingSentiment,
     Motorcycle,
     PlatformFee,
+    UserRating,
     UserSafetyProfile,
 )
 
@@ -156,3 +159,23 @@ class UserSafetyProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "contact_blocked", "is_banned", "updated_at")
     list_filter = ("contact_blocked", "is_banned")
     search_fields = ("user__username",)
+
+
+@admin.register(ClosedDeal)
+class ClosedDealAdmin(admin.ModelAdmin):
+    list_display = ("id", "motorcycle", "seller", "buyer", "sale_price", "closed_at")
+    search_fields = ("motorcycle__title", "seller__username", "buyer__username")
+
+
+@admin.register(UserRating)
+class UserRatingAdmin(admin.ModelAdmin):
+    list_display = ("deal", "rater", "ratee", "ratee_role", "score", "created_at")
+    list_filter = ("ratee_role", "score")
+    search_fields = ("rater__username", "ratee__username", "review")
+
+
+@admin.register(ListingSentiment)
+class ListingSentimentAdmin(admin.ModelAdmin):
+    list_display = ("motorcycle", "label", "score", "method_version", "scored_at")
+    list_filter = ("label",)
+
