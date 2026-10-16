@@ -72,10 +72,12 @@ class ListingPredictionAdmin(admin.ModelAdmin):
         "deal_label",
         "trust_score",
         "trust_label",
+        "anomaly_label",
+        "anomaly_score",
         "scored_at",
     )
-    list_filter = ("deal_label", "trust_label")
-    readonly_fields = ("trust_flags", "features")
+    list_filter = ("deal_label", "trust_label", "anomaly_label")
+    readonly_fields = ("trust_flags", "anomaly_flags", "features")
 
 
 @admin.register(DealSheet)

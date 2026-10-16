@@ -162,6 +162,18 @@ class ListingPrediction(models.Model):
     trust_label = models.CharField(max_length=20, blank=True, default="", choices=TRUST_LABELS)
     trust_flags = models.JSONField(default=list, blank=True)
     trust_completeness = models.FloatField(default=0.0)
+    # Market-dataset anomaly (peer bands / catalog) — NegoMotor "waspada" signal
+    ANOMALY_LABELS = [
+        ("ok", "OK"),
+        ("waspada", "Waspada"),
+        ("waspada_tinggi", "Waspada tinggi"),
+    ]
+    anomaly_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    anomaly_label = models.CharField(max_length=20, blank=True, default="", choices=ANOMALY_LABELS)
+    anomaly_flags = models.JSONField(default=list, blank=True)
+    anomaly_confidence = models.FloatField(default=0.0)
+    anomaly_peer_n = models.PositiveSmallIntegerField(default=0)
+    anomaly_peer_source = models.CharField(max_length=32, blank=True, default="")
 
     def __str__(self):
         return f"{self.motorcycle_id} {self.deal_label} {self.predicted_price}"

@@ -6,7 +6,9 @@ import pandas as pd
 from django.utils import timezone
 
 from market.models import ListingPrediction, Motorcycle
+from market.services.anomaly import fold_anomaly_flags, listing_anomaly
 from market.services.trust import assess_bike
+from ml.anomaly import MarketIndex, merge_anomaly_into_trust_score
 from ml.catalog import CATALOG
 from ml.score import ModelNotTrainedError, deal_label, deal_score, predict_prices
 
@@ -91,7 +93,11 @@ def suggest_fair_value(data: dict, asking_price: float | None = None) -> dict | 
     }
 
 
-def score_listing(bike: Motorcycle) -> ListingPrediction | None:
+def score_listing(
+    bike: Motorcycle,
+    *,
+    market_index: MarketIndex | None = None,
+) -> ListingPrediction | None:
     try:
         pred = float(predict_prices(pd.DataFrame([listing_to_record(bike)]))[0])
     except ModelNotTrainedError:
@@ -104,6 +110,17 @@ def score_listing(bike: Motorcycle) -> ListingPrediction | None:
         predicted_price=pred,
         deal_score=score,
     )
+    anomaly = listing_anomaly(
+        bike,
+        predicted_price=pred,
+        deal_score=score,
+        index=market_index,
+    )
+    trust = fold_anomaly_flags(trust, anomaly)
+    trust_score, trust_label = merge_anomaly_into_trust_score(trust.score, anomaly)
+    trust.score = trust_score
+    trust.label = trust_label
+
     obj, _ = ListingPrediction.objects.update_or_create(
         motorcycle=bike,
         defaults={
@@ -116,15 +133,25 @@ def score_listing(bike: Motorcycle) -> ListingPrediction | None:
             "trust_label": trust.label,
             "trust_flags": [flag.__dict__ for flag in trust.flags],
             "trust_completeness": trust.completeness,
+            "anomaly_score": anomaly.score,
+            "anomaly_label": anomaly.label,
+            "anomaly_flags": [flag.__dict__ for flag in anomaly.flags],
+            "anomaly_confidence": anomaly.confidence,
+            "anomaly_peer_n": anomaly.peer_n,
+            "anomaly_peer_source": anomaly.peer_source,
         },
     )
     return obj
 
 
 def score_queryset(qs=None) -> int:
+    from market.services.anomaly import clear_market_index_cache, market_index
+
     qs = qs if qs is not None else Motorcycle.objects.all()
+    clear_market_index_cache()
+    index = market_index(refresh=True)
     count = 0
     for bike in qs:
-        if score_listing(bike):
+        if score_listing(bike, market_index=index):
             count += 1
     return count

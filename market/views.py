@@ -18,6 +18,7 @@ from market.services.desk import listing_desk, market_board
 from market.services.fees import fee_summary
 from market.services.fleet_intel import enrich_programs, market_coverage, pack_snapshot, recommend_pack
 from market.services.fleets import PROGRAMS
+from market.services.anomaly import ANOMALY_COPY, anomaly_from_prediction, listing_anomaly
 from market.services.pricing import listings_frame, score_listing, suggest_fair_value
 from market.services.trust import TRUST_COPY, listing_trust
 from market.services.unlock import (
@@ -29,6 +30,7 @@ from market.services.unlock import (
 from .forms import DealSheetForm, FleetInquiryForm, ListingMessageForm, MotorcycleForm
 
 TRUST_FILTERS = {"high_trust", "review", "caution"}
+ANOMALY_FILTERS = {"ok", "waspada", "waspada_tinggi"}
 
 
 def index(request):
@@ -39,6 +41,7 @@ def index(request):
     city = request.GET.get("city")
     deal = request.GET.get("deal")
     trust = request.GET.get("trust")
+    anomaly = request.GET.get("anomaly")
     q = request.GET.get("q")
     sort = request.GET.get("sort")
     surat = request.GET.get("surat")
@@ -59,6 +62,8 @@ def index(request):
             bpkb_status__in=["ada", "di_leasing"],
             pajak_mati=False,
         )
+    if anomaly in ANOMALY_FILTERS:
+        qs = qs.filter(prediction__anomaly_label=anomaly)
     if q:
         qs = qs.filter(
             Q(title__icontains=q)
@@ -74,6 +79,8 @@ def index(request):
         qs = qs.order_by("-prediction__deal_score")
     elif sort == "trust":
         qs = qs.order_by("-prediction__trust_score")
+    elif sort == "anomaly":
+        qs = qs.order_by("prediction__anomaly_score")
 
     paginator = Paginator(qs.select_related("prediction"), 12)
     motorcycles = paginator.get_page(request.GET.get("page"))
@@ -151,6 +158,7 @@ def motorcycle_detail(request, pk):
             )
             can_chat = True
 
+    anomaly = anomaly_from_prediction(prediction) or listing_anomaly(motorcycle)
     return render(
         request,
         "market/detail.html",
@@ -173,6 +181,8 @@ def motorcycle_detail(request, pk):
             "message_form": message_form,
             "can_chat": can_chat,
             "reply_buyers": reply_buyers,
+            "anomaly": anomaly,
+            "anomaly_copy": ANOMALY_COPY.get(anomaly.label, ""),
         },
     )
 
