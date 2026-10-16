@@ -35,6 +35,12 @@ CONDITION_NAMES = {
     "poor": "Kurang",
 }
 
+SENTIMENT_NAMES = {
+    "professional": "Jelas & profesional",
+    "mixed": "Campuran",
+    "caution": "Agresif / spam",
+}
+
 ANOMALY_NAMES = {
     "ok": "OK pasar",
     "waspada": "Waspada",
@@ -98,3 +104,19 @@ def querystring(request, **overrides):
         else:
             params[key] = value
     return params.urlencode()
+
+
+@register.filter
+def sentiment_name(value):
+    return SENTIMENT_NAMES.get(value, value or "")
+
+
+@register.filter
+def stars(value):
+    """Render 1–5 score as ★/☆ string."""
+    try:
+        n = int(round(float(value)))
+    except (TypeError, ValueError):
+        return "—"
+    n = max(0, min(5, n))
+    return "★" * n + "☆" * (5 - n)

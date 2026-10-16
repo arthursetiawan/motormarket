@@ -26,7 +26,7 @@
       {% if motorcycle.make %} · {{ motorcycle.make }}{% if motorcycle.model_name %} {{ motorcycle.model_name }}{% endif %}{% endif %}
       {% if motorcycle.mileage_km %} · {{ motorcycle.mileage_km|intcomma }} km{% endif %}
       {% if motorcycle.city %} · {{ motorcycle.city }}{% endif %}
-      · Penjual: {{ motorcycle.seller.username }}
+      · Penjual: <a href="{% url 'public_profile' motorcycle.seller.username %}">{{ motorcycle.seller.username }}</a>{% if seller_reputation.as_seller.count %} · {{ seller_reputation.as_seller.average|stars }} ({{ seller_reputation.as_seller.count }}){% endif %}
     </p>
     <p class="price"><span class="price-label">Harga awal</span>{{ motorcycle.start_price|currency_idr }}</p>
     {% if motorcycle.engine_cc or motorcycle.condition or motorcycle.transmission %}
@@ -91,6 +91,17 @@
         {% endfor %}
       </ul>
       {% endif %}
+    </div>
+    {% endif %}
+
+    
+    {% if sentiment %}
+    <div class="anomaly-panel">
+      <p class="trust-head">
+        <span class="badge sentiment-{{ sentiment.label }}">{{ sentiment.label|sentiment_name }}</span>
+        <strong>{{ sentiment.score|floatformat:0 }}/100</strong>
+      </p>
+      <p class="meta">{{ sentiment_copy }}</p>
     </div>
     {% endif %}
 
@@ -253,6 +264,25 @@
         <button type="submit" name="mode" value="on_platform" class="btn">Tandai selesai di NegoMotor</button>
         <button type="submit" name="mode" value="off_app" class="btn btn-ghost">Deal di luar app (tanpa perlindungan)</button>
       </form>
+    </section>
+    {% endif %}
+
+    
+    {% if close_form %}
+    <section class="close-deal-panel">
+      <h4>Tutup deal + buka rating</h4>
+      <p class="meta">Pilih pembeli (harus sudah bid). Setelah ditutup, kedua pihak bisa saling rating sekali.</p>
+      <form method="post" action="{% url 'close_listing_deal' motorcycle.pk %}">
+        {% csrf_token %}
+        {{ close_form.as_p }}
+        <button class="btn" type="submit">Tutup deal</button>
+      </form>
+    </section>
+    {% endif %}
+    {% if closed_deal and rate_form %}
+    <section class="close-deal-panel">
+      <h4>Beri rating</h4>
+      <p class="meta"><a class="btn" href="{% url 'rate_deal' closed_deal.pk %}">Isi rating deal</a></p>
     </section>
     {% endif %}
 

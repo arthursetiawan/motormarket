@@ -12,7 +12,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from ml.paths import IMPORTANCE_PATH, METRICS_PATH
 from ml.recommend import similar_listings
-from market.models import Bid, DealSheet, ListingMessage, Motorcycle
+from market.models import Bid, ClosedDeal, DealSheet, ListingMessage, Motorcycle, UserRating
 from market.services.contact_filter import filter_chat_message
 from market.services.desk import listing_desk, market_board
 from market.services.fees import fee_summary
@@ -20,6 +20,20 @@ from market.services.fleet_intel import enrich_programs, market_coverage, pack_s
 from market.services.fleets import PROGRAMS
 from market.services.anomaly import ANOMALY_COPY, anomaly_from_prediction, listing_anomaly
 from market.services.pricing import listings_frame, score_listing, suggest_fair_value
+from market.services.ratings import (
+    can_rate,
+    close_deal,
+    counterpart_role,
+    pending_ratings_for,
+    reputation_for,
+    submit_rating,
+)
+from market.services.sentiment import (
+    LABEL_COPY,
+    listing_sentiment,
+    score_listing_sentiment,
+    seller_listing_sentiment,
+)
 from market.services.trust import TRUST_COPY, listing_trust
 from market.services.unlock import (
     buyer_has_paid_fee,
@@ -27,7 +41,7 @@ from market.services.unlock import (
     reveal_contact,
     simulate_pay_fee,
 )
-from .forms import DealSheetForm, FleetInquiryForm, ListingMessageForm, MotorcycleForm
+from .forms import CloseDealForm, DealSheetForm, FleetInquiryForm, ListingMessageForm, MotorcycleForm, UserRatingForm
 
 TRUST_FILTERS = {"high_trust", "review", "caution"}
 ANOMALY_FILTERS = {"ok", "waspada", "waspada_tinggi"}
@@ -159,6 +173,21 @@ def motorcycle_detail(request, pk):
             can_chat = True
 
     anomaly = anomaly_from_prediction(prediction) or listing_anomaly(motorcycle)
+    sentiment = listing_sentiment(motorcycle)
+    seller_rep = reputation_for(motorcycle.seller)
+    seller_sent = seller_listing_sentiment(motorcycle.seller)
+    closed = ClosedDeal.objects.filter(motorcycle=motorcycle).select_related("buyer").first()
+    close_form = None
+    rate_form = None
+    if (
+        request.user.is_authenticated
+        and request.user.pk == motorcycle.seller_id
+        and not motorcycle.is_sold
+        and closed is None
+    ):
+        close_form = CloseDealForm(motorcycle=motorcycle)
+    if closed and request.user.is_authenticated and can_rate(request.user, closed):
+        rate_form = UserRatingForm()
     return render(
         request,
         "market/detail.html",
@@ -183,6 +212,13 @@ def motorcycle_detail(request, pk):
             "reply_buyers": reply_buyers,
             "anomaly": anomaly,
             "anomaly_copy": ANOMALY_COPY.get(anomaly.label, ""),
+            "sentiment": sentiment,
+            "sentiment_copy": LABEL_COPY.get(getattr(sentiment, "label", ""), ""),
+            "seller_reputation": seller_rep,
+            "seller_sentiment": seller_sent,
+            "closed_deal": closed,
+            "close_form": close_form,
+            "rate_form": rate_form,
         },
     )
 
@@ -367,13 +403,26 @@ def mark_deal_closed(request, pk):
     if mode == "on_platform":
         motorcycle.deal_status = "closed_on_platform"
         motorcycle.is_sold = True
+        highest = motorcycle.bids.order_by("-amount").first()
         if not motorcycle.sold_price:
-            highest = motorcycle.bids.order_by("-amount").first()
             motorcycle.sold_price = highest.amount if highest else motorcycle.start_price
         motorcycle.save(update_fields=["deal_status", "is_sold", "sold_price"])
         DealSheet.objects.filter(motorcycle=motorcycle, status="unlocked").update(
             status="closed_on_platform"
         )
+        buyer = highest.bidder if highest else None
+        if buyer and buyer.pk != motorcycle.seller_id:
+            try:
+                close_deal(
+                    motorcycle=motorcycle,
+                    seller=motorcycle.seller,
+                    buyer=buyer,
+                    sale_price=motorcycle.sold_price,
+                    winning_bid=highest,
+                    notes="Closed via platform fee / seller mark",
+                )
+            except Exception:
+                pass
         messages.success(request, "Deal ditandai selesai di NegoMotor — ada perlindungan platform.")
     elif mode == "off_app":
         motorcycle.deal_status = "sold_off_app"
@@ -451,6 +500,7 @@ def create_listing(request):
             listing.seller = request.user
             listing.save()
             score_listing(listing)
+            score_listing_sentiment(listing)
             messages.success(
                 request,
                 "Listing dibuat. Nomor HP/WA hanya muncul setelah pembeli bayar biaya platform.",
@@ -464,8 +514,117 @@ def create_listing(request):
 
 @login_required
 def profile(request):
-    listings = Motorcycle.objects.filter(seller=request.user).select_related("prediction")
-    return render(request, "account/profile.html", {"profile_user": request.user, "listings": listings})
+    return _render_profile(request, request.user)
+
+
+def public_profile(request, username):
+    from django.contrib.auth.models import User
+
+    profile_user = get_object_or_404(User, username=username)
+    return _render_profile(request, profile_user)
+
+
+def _render_profile(request, profile_user):
+    listings = (
+        Motorcycle.objects.filter(seller=profile_user)
+        .select_related("prediction", "sentiment")
+        .order_by("-created_at")
+    )
+    received = (
+        UserRating.objects.filter(ratee=profile_user)
+        .select_related("rater", "deal__motorcycle")
+        .order_by("-created_at")[:12]
+    )
+    pending = []
+    if request.user.is_authenticated and request.user.pk == profile_user.pk:
+        pending = pending_ratings_for(request.user)
+    return render(
+        request,
+        "account/profile.html",
+        {
+            "profile_user": profile_user,
+            "listings": listings,
+            "reputation": reputation_for(profile_user),
+            "seller_sentiment": seller_listing_sentiment(profile_user),
+            "received_ratings": received,
+            "pending_ratings": pending,
+            "is_own_profile": request.user.is_authenticated and request.user.pk == profile_user.pk,
+        },
+    )
+
+
+@login_required
+def close_listing_deal(request, pk):
+    motorcycle = get_object_or_404(Motorcycle, pk=pk)
+    if motorcycle.seller_id != request.user.pk:
+        messages.error(request, "Hanya penjual yang bisa menutup deal.")
+        return redirect("motorcycle_detail", pk=pk)
+    if motorcycle.is_sold or ClosedDeal.objects.filter(motorcycle=motorcycle).exists():
+        messages.info(request, "Transaksi untuk iklan ini sudah ditutup.")
+        return redirect("motorcycle_detail", pk=pk)
+
+    form = CloseDealForm(request.POST or None, motorcycle=motorcycle)
+    if request.method == "POST" and form.is_valid():
+        try:
+            deal = close_deal(
+                motorcycle=motorcycle,
+                seller=request.user,
+                buyer=form.cleaned_data["buyer"],
+                sale_price=form.cleaned_data.get("sale_price") or None,
+                notes=form.cleaned_data.get("notes") or "",
+            )
+            motorcycle.deal_status = "closed_on_platform"
+            if not motorcycle.sold_price:
+                motorcycle.sold_price = deal.sale_price
+            motorcycle.save(update_fields=["deal_status", "sold_price", "is_sold"])
+            messages.success(
+                request,
+                f"Deal ditutup dengan {deal.buyer.username}. Kedua pihak bisa saling memberi rating.",
+            )
+            return redirect("motorcycle_detail", pk=pk)
+        except (PermissionError, ValueError) as exc:
+            messages.error(request, str(exc))
+    elif request.method == "POST":
+        messages.error(request, "Pilih pembeli yang valid (harus sudah bid).")
+    return redirect("motorcycle_detail", pk=pk)
+
+
+@login_required
+def rate_deal(request, deal_id):
+    deal = get_object_or_404(
+        ClosedDeal.objects.select_related("motorcycle", "seller", "buyer"), pk=deal_id
+    )
+    if not can_rate(request.user, deal):
+        messages.error(request, "Anda tidak bisa memberi rating untuk transaksi ini.")
+        return redirect("motorcycle_detail", pk=deal.motorcycle_id)
+
+    form = UserRatingForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            role = counterpart_role(request.user, deal)
+            rating = submit_rating(
+                deal=deal,
+                rater=request.user,
+                score=form.cleaned_data["score"],
+                review=form.cleaned_data.get("review") or "",
+            )
+            label = "penjual" if role == UserRating.ROLE_SELLER else "pembeli"
+            messages.success(
+                request,
+                f"Terima kasih — rating {rating.score}★ untuk {label} tersimpan.",
+            )
+            return redirect("public_profile", username=rating.ratee.username)
+        except PermissionError as exc:
+            messages.error(request, str(exc))
+    return render(
+        request,
+        "market/rate_deal.html",
+        {
+            "deal": deal,
+            "form": form or UserRatingForm(),
+            "ratee_role": counterpart_role(request.user, deal),
+        },
+    )
 
 
 def terms(request):

@@ -1,8 +1,9 @@
+from django.contrib.auth.models import User
 from django import forms
 
 from market.services.contact_filter import scrub_public_text
 
-from .models import DealSheet, FleetInquiry, ListingMessage, Motorcycle
+from .models import DealSheet, FleetInquiry, ListingMessage, Motorcycle, UserRating
 
 
 class MotorcycleForm(forms.ModelForm):
@@ -166,3 +167,50 @@ class FleetInquiryForm(forms.ModelForm):
         if size < 5 or size > 500:
             raise forms.ValidationError("Ukuran armada harus antara 5 dan 500 unit.")
         return size
+
+class CloseDealForm(forms.Form):
+    buyer = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Pembeli",
+        help_text="Pilih pemenang lelang / pembeli yang sudah deal di NegoMotor.",
+    )
+    sale_price = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        required=False,
+        label="Harga deal (IDR)",
+        help_text="Kosongkan untuk memakai bid tertinggi pembeli atau harga ask.",
+    )
+    notes = forms.CharField(
+        max_length=200,
+        required=False,
+        label="Catatan",
+        widget=forms.TextInput(attrs={"placeholder": "Opsional"}),
+    )
+
+    def __init__(self, *args, motorcycle: Motorcycle | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if motorcycle is not None:
+            bidder_ids = motorcycle.bids.values_list("bidder_id", flat=True).distinct()
+            self.fields["buyer"].queryset = User.objects.filter(pk__in=bidder_ids).order_by(
+                "username"
+            )
+
+class UserRatingForm(forms.ModelForm):
+    class Meta:
+        model = UserRating
+        fields = ["score", "review"]
+        labels = {
+            "score": "Rating (1–5 bintang)",
+            "review": "Ulasan singkat (opsional)",
+        }
+        widgets = {
+            "score": forms.NumberInput(attrs={"min": 1, "max": 5, "step": 1}),
+            "review": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "maxlength": 400,
+                    "placeholder": "Contoh: Penjual responsif, motor sesuai deskripsi.",
+                }
+            ),
+        }

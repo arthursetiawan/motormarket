@@ -75,6 +75,7 @@ Model documentation: `artifacts/reports/MODEL_CARD.md`.
 - Bebek segment in `ml/catalog.py` (Supra X, Revo, Jupiter, Vega, Smash…)
 - Fleet packs: `exclude_caution` + `ojol_ready` filters
 - Market anomaly / waspada badges on score (`ListingPrediction.anomaly_*`)
+- Dual deal ratings (as seller / as buyer) after `ClosedDeal`; listing text sentiment (`ml/sentiment.py`)
 - API: `GET /api/motorcycles/<id>/trust/`, `.../anomaly/`, `GET /api/fleets/pack/?program=delivery&size=25&exclude_caution=1&ojol_ready=1`, `GET /api/fleets/coverage/`
 
 **How to verify**
