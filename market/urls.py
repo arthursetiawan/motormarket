@@ -14,6 +14,7 @@ urlpatterns = [
     path('motorcycle/<int:pk>/ppi/', views.request_ppi, name='request_ppi'),
 
     path('terms/', views.terms, name='terms'),
+    path('financing/', views.financing, name='financing'),
     path('create/', views.create_listing, name='create_listing'),
     path('suggest-ask/', views.suggest_ask, name='suggest_ask'),
     path('profile/', views.profile, name='profile'),

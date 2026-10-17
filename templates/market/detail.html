@@ -29,6 +29,9 @@
       · Penjual: <a href="{% url 'public_profile' motorcycle.seller.username %}">{{ motorcycle.seller.username }}</a>{% if seller_reputation.as_seller.count %} · {{ seller_reputation.as_seller.average|stars }} ({{ seller_reputation.as_seller.count }}){% endif %}
     </p>
     <p class="price"><span class="price-label">Harga awal</span>{{ motorcycle.start_price|currency_idr }}</p>
+    <p class="financing-cta">
+      <a class="btn btn-ghost" href="{% url 'financing' %}?listing={{ motorcycle.pk }}">Cek pembiayaan</a>
+    </p>
     {% if motorcycle.engine_cc or motorcycle.condition or motorcycle.transmission %}
     <p class="meta meta-dense">
       {% if motorcycle.engine_cc %}{{ motorcycle.engine_cc }}cc{% endif %}

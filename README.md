@@ -19,6 +19,7 @@ frontend/             Optional React + Vite (not required to run the site)
 | `/` | Home |
 | `/market/` | Listings index |
 | `/market/motorcycle/<id>/` | Detail + bidding |
+| `/market/financing/` | Simulasi pembiayaan / cicilan (estimasi) |
 | `/market/insights/` | Market / pricing insights + fleet coverage |
 | `/market/fleets/` | B2B fleet programs, pack recommendations, inquiries |
 | `/api/` | DRF endpoints (pricing, trust, fleet packs) |
@@ -77,6 +78,7 @@ Model documentation: `artifacts/reports/MODEL_CARD.md`.
 - Market anomaly / waspada badges on score (`ListingPrediction.anomaly_*`)
 - Indo auction mashup: soft close, proxy bid, watchlist, grade A/B/C, Buy Now
 - Dual deal ratings (as seller / as buyer) after `ClosedDeal`; listing text sentiment (`ml/sentiment.py`)
+- Financing / cicilan estimator: `/market/financing/?listing=<id>` (or manual OTR/DP/tenor/rate); link **Cek pembiayaan** on detail
 - API: `GET /api/motorcycles/<id>/trust/`, `.../anomaly/`, `GET /api/fleets/pack/?program=delivery&size=25&exclude_caution=1&ojol_ready=1`, `GET /api/fleets/coverage/`
 
 **How to verify**
@@ -86,12 +88,15 @@ python manage.py migrate
 python manage.py seed_market
 python manage.py runserver
 # Detail: /market/motorcycle/<id>/ — skor kepercayaan + chip surat + lembar deal
+# Financing: /market/financing/?listing=<id> or /market/financing/?otr=15000000&dp_pct=20&tenor=24
 # Fleets: /market/fleets/?program=ride_hailing&exclude_caution=1&ojol_ready=1#pack
 # Fee unlock: chat → Bayar biaya platform (simulated) → kontak terbuka; /market/terms/
 python manage.py test market.tests
 ```
 
 Platform fee knobs (see `.env.example`): `PLATFORM_FEE_RATE`, `PLATFORM_FEE_MIN_IDR`, `PLATFORM_FEE_MAX_IDR`.
+
+Financing knobs: `FINANCING_DEFAULT_FLAT_RATE`, `FINANCING_DEFAULT_EFFECTIVE_RATE`, `FINANCING_DEFAULT_DP_PCT`, `FINANCING_DEFAULT_TENOR_MONTHS`, `FINANCING_ADMIN_FEE_IDR`.
 
 ## Environment variables
 
