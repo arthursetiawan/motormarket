@@ -79,6 +79,7 @@ Model documentation: `artifacts/reports/MODEL_CARD.md`.
 - Indo auction mashup: soft close, proxy bid, watchlist, grade A/B/C, Buy Now
 - Dual deal ratings (as seller / as buyer) after `ClosedDeal`; listing text sentiment (`ml/sentiment.py`)
 - Financing / cicilan estimator: `/market/financing/?listing=<id>` (or manual OTR/DP/tenor/rate); link **Cek pembiayaan** on detail
+- KYC registration: email + KTP (NIK 16 digit) + DOB + selfie required; stored on `UserProfile`; private from other users; sell/bid gated until complete (`/market/kyc/`)
 - API: `GET /api/motorcycles/<id>/trust/`, `.../anomaly/`, `GET /api/fleets/pack/?program=delivery&size=25&exclude_caution=1&ojol_ready=1`, `GET /api/fleets/coverage/`
 
 **How to verify**
@@ -91,6 +92,7 @@ python manage.py runserver
 # Financing: /market/financing/?listing=<id> or /market/financing/?otr=15000000&dp_pct=20&tenor=24
 # Fleets: /market/fleets/?program=ride_hailing&exclude_caution=1&ojol_ready=1#pack
 # Fee unlock: chat → Bayar biaya platform (simulated) → kontak terbuka; /market/terms/
+# KYC signup: /accounts/signup/ — email, NIK, DOB, selfie; admin /admin/market/userprofile/
 python manage.py test market.tests
 ```
 

@@ -11,6 +11,18 @@
   <p class="meta">Email: {{ profile_user.email }}</p>
   {% endif %}
 
+  {% if is_own_profile %}
+  <section class="card desk">
+    <h2>Verifikasi akun</h2>
+    {% if kyc_complete %}
+    <p class="meta">Status: lengkap — data KTP &amp; foto diri hanya untuk catatan perusahaan (tidak publik).</p>
+    {% else %}
+    <p class="meta">Status: belum lengkap. Wajib sebelum jual atau menawar.</p>
+    <p><a class="btn" href="{% url 'complete_kyc' %}">Lengkapi KTP &amp; foto diri</a></p>
+    {% endif %}
+  </section>
+  {% endif %}
+
   <section class="reputation-grid card desk">
     <h2>Reputasi NegoMotor</h2>
     <p class="meta">Rating terpisah sebagai penjual dan pembeli — hanya setelah deal ditutup di platform.</p>

@@ -15,6 +15,7 @@ from .models import (
     Motorcycle,
     PlatformFee,
     PpiRequest,
+    UserProfile,
     UserRating,
     UserSafetyProfile,
     Watchlist,
@@ -213,4 +214,44 @@ class InAppNotificationAdmin(admin.ModelAdmin):
 @admin.register(PpiRequest)
 class PpiRequestAdmin(admin.ModelAdmin):
     list_display = ("motorcycle", "requester", "created_at")
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    """Company-record KYC — staff only. Never expose on marketplace templates."""
+
+    list_display = (
+        "user",
+        "masked_ktp_display",
+        "date_of_birth",
+        "has_selfie",
+        "kyc_complete",
+        "kyc_completed_at",
+        "updated_at",
+    )
+    search_fields = ("user__username", "user__email", "ktp_number")
+    list_filter = ("date_of_birth",)
+    readonly_fields = ("kyc_completed_at", "updated_at", "masked_ktp_display")
+    raw_id_fields = ("user",)
+    fields = (
+        "user",
+        "masked_ktp_display",
+        "ktp_number",
+        "date_of_birth",
+        "selfie",
+        "kyc_completed_at",
+        "updated_at",
+    )
+
+    @admin.display(description="KTP (masked)", ordering="ktp_number")
+    def masked_ktp_display(self, obj):
+        return obj.masked_ktp()
+
+    @admin.display(boolean=True, description="Selfie")
+    def has_selfie(self, obj):
+        return bool(obj.selfie)
+
+    @admin.display(boolean=True, description="KYC lengkap")
+    def kyc_complete(self, obj):
+        return obj.is_complete
 

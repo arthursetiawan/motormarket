@@ -5,6 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from market.models import Bid, DealSheet, Motorcycle
+from market.tests.kyc_helpers import attach_complete_kyc
 
 
 class BidFloorTests(TestCase):
@@ -12,6 +13,9 @@ class BidFloorTests(TestCase):
         self.seller = User.objects.create_user("seller", password="x")
         self.bidder = User.objects.create_user("bidder", password="x")
         self.other = User.objects.create_user("other", password="x")
+        attach_complete_kyc(self.seller)
+        attach_complete_kyc(self.bidder)
+        attach_complete_kyc(self.other)
         self.bike = Motorcycle.objects.create(
             title="2021 Honda BeAT",
             description="Single owner BeAT for Jabodetabek commuting with service history.",

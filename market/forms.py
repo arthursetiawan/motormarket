@@ -1,9 +1,23 @@
+from datetime import date
+
+from allauth.account.forms import SignupForm
 from django.contrib.auth.models import User
 from django import forms
+from django.utils import timezone
 
 from market.services.contact_filter import scrub_public_text
+from market.validators import validate_nik, validate_selfie_file
 
-from .models import DealSheet, FleetInquiry, ListingComment, ListingMessage, Motorcycle, PpiRequest, UserRating
+from .models import (
+    DealSheet,
+    FleetInquiry,
+    ListingComment,
+    ListingMessage,
+    Motorcycle,
+    PpiRequest,
+    UserProfile,
+    UserRating,
+)
 
 
 class MotorcycleForm(forms.ModelForm):
@@ -288,3 +302,114 @@ class PpiRequestForm(forms.ModelForm):
                 attrs={"rows": 2, "placeholder": "Kapan dan di mana Anda ingin cek unit?"}
             ),
         }
+
+
+def _kyc_field_ktp():
+    return forms.CharField(
+        label="Nomor KTP (NIK)",
+        max_length=16,
+        min_length=16,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "16 digit NIK",
+                "inputmode": "numeric",
+                "autocomplete": "off",
+                "pattern": r"\d{16}",
+            }
+        ),
+        help_text="16 digit. Hanya untuk verifikasi & catatan perusahaan NegoMotor.",
+    )
+
+
+def _kyc_field_dob():
+    return forms.DateField(
+        label="Tanggal lahir",
+        widget=forms.DateInput(attrs={"type": "date"}),
+        help_text="Sesuai KTP.",
+    )
+
+
+def _kyc_field_selfie():
+    return forms.ImageField(
+        label="Foto diri (selfie)",
+        help_text="JPG/PNG/WebP, maks. 5 MB. Tidak ditampilkan ke pengguna lain.",
+    )
+
+
+def _clean_kyc_ktp(value: str) -> str:
+    # Do not log the raw NIK — ValidationError messages stay generic.
+    return validate_nik(value or "")
+
+
+def _clean_kyc_dob(dob: date) -> date:
+    today = date.today()
+    if dob > today:
+        raise forms.ValidationError("Tanggal lahir tidak boleh di masa depan.")
+    age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    if age < 17:
+        raise forms.ValidationError("Usia minimal 17 tahun untuk daftar di NegoMotor.")
+    return dob
+
+
+def _save_kyc_profile(user: User, cleaned_data: dict) -> UserProfile:
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile.ktp_number = cleaned_data["ktp_number"]
+    profile.date_of_birth = cleaned_data["date_of_birth"]
+    profile.selfie = cleaned_data["selfie"]
+    profile.kyc_completed_at = timezone.now()
+    profile.save()
+    return profile
+
+
+class KycSignupForm(SignupForm):
+    """allauth signup + required KYC fields for company records."""
+
+    ktp_number = _kyc_field_ktp()
+    date_of_birth = _kyc_field_dob()
+    selfie = _kyc_field_selfie()
+
+    field_order = [
+        "email",
+        "username",
+        "ktp_number",
+        "date_of_birth",
+        "selfie",
+        "password1",
+        "password2",
+    ]
+
+    def clean_ktp_number(self):
+        return _clean_kyc_ktp(self.cleaned_data.get("ktp_number", ""))
+
+    def clean_date_of_birth(self):
+        return _clean_kyc_dob(self.cleaned_data["date_of_birth"])
+
+    def clean_selfie(self):
+        selfie = self.cleaned_data.get("selfie")
+        validate_selfie_file(selfie)
+        return selfie
+
+    def custom_signup(self, request, user):
+        _save_kyc_profile(user, self.cleaned_data)
+
+
+class CompleteKycForm(forms.Form):
+    """For existing accounts that still need KYC before sell/bid."""
+
+    ktp_number = _kyc_field_ktp()
+    date_of_birth = _kyc_field_dob()
+    selfie = _kyc_field_selfie()
+
+    def clean_ktp_number(self):
+        return _clean_kyc_ktp(self.cleaned_data.get("ktp_number", ""))
+
+    def clean_date_of_birth(self):
+        return _clean_kyc_dob(self.cleaned_data["date_of_birth"])
+
+    def clean_selfie(self):
+        selfie = self.cleaned_data.get("selfie")
+        validate_selfie_file(selfie)
+        return selfie
+
+    def save(self, user: User) -> UserProfile:
+        return _save_kyc_profile(user, self.cleaned_data)

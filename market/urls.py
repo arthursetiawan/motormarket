@@ -16,6 +16,7 @@ urlpatterns = [
     path('terms/', views.terms, name='terms'),
     path('financing/', views.financing, name='financing'),
     path('create/', views.create_listing, name='create_listing'),
+    path('kyc/', views.complete_kyc, name='complete_kyc'),
     path('suggest-ask/', views.suggest_ask, name='suggest_ask'),
     path('profile/', views.profile, name='profile'),
     path('motorcycle/<int:pk>/', views.motorcycle_detail, name='motorcycle_detail'),
