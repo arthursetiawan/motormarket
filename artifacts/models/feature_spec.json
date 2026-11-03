@@ -1,0 +1,22 @@
+{
+  "numeric": [
+    "year",
+    "age",
+    "mileage_km",
+    "engine_cc",
+    "owners_count",
+    "km_per_year",
+    "is_premium"
+  ],
+  "categorical": [
+    "make",
+    "model_name",
+    "segment",
+    "condition",
+    "city",
+    "fuel_type",
+    "transmission"
+  ],
+  "target": "sold_price",
+  "anchor_year": 2026
+}
