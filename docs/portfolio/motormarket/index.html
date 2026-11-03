@@ -8,23 +8,48 @@
   <link rel="stylesheet" href="css/styles.css">
   <style>
     .demo-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
       background: rgba(6, 20, 40, 0.96);
       color: rgba(255,255,255,0.78);
       font-size: 0.8rem;
       font-weight: 600;
-      text-align: center;
-      padding: 9px 14px;
+      padding: 9px 16px;
       border-bottom: 1px solid rgba(91,156,240,0.25);
     }
     .demo-banner a { color: var(--blue-400); font-weight: 700; }
     .demo-banner a:hover { color: #fff; }
+    .demo-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 6px;
+      background: rgba(91, 156, 240, 0.18);
+      border: 1px solid rgba(91, 156, 240, 0.45);
+      color: #fff !important;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .demo-back:hover {
+      background: var(--blue-600);
+      border-color: var(--blue-600);
+      color: #fff !important;
+    }
+    .demo-banner-meta { margin-left: auto; text-align: right; }
   </style>
 </head>
 <body>
   <div class="demo-banner">
-    Hosted Motormarket demo ·
-    <a href="https://github.com/arthursetiawan/motormarket">Full Django app on GitHub</a> ·
-    <a href="../">Back to portfolio</a>
+    <a class="demo-back" href="https://arthursetiawan.github.io/">← Arthur Setiawan</a>
+    <span class="demo-banner-meta">
+      Hosted Motormarket demo ·
+      <a href="https://github.com/arthursetiawan/motormarket">Full Django app on GitHub</a>
+    </span>
   </div>
   <div class="site-shell">
     <header class="site-header">
